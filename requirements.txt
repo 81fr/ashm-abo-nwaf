@@ -5,3 +5,5 @@ openai
 plotly
 numpy
 google-generativeai
+Flask
+gunicorn
