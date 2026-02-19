@@ -4,3 +4,4 @@ streamlit
 openai
 plotly
 numpy
+google-generativeai

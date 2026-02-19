@@ -99,8 +99,21 @@ class StockEngine:
         except Exception as e:
             return None, f"Error during screening: {str(e)}"
 
+    def calculate_atr(self, df, period=14):
+        """Calculates Average True Range (ATR)."""
+        high_low = df['High'] - df['Low']
+        high_close = np.abs(df['High'] - df['Close'].shift())
+        low_close = np.abs(df['Low'] - df['Close'].shift())
+        
+        ranges = pd.concat([high_low, high_close, low_close], axis=1)
+        true_range = np.max(ranges, axis=1)
+        
+        df['ATR'] = true_range.rolling(window=period).mean()
+        return df
+
     def get_recommendation(self, df):
-        """Simple rule-based recommendation based on technicals."""
+        """Standard recommendation with Entry, SL, and TP based on ATR."""
+        df = self.calculate_atr(df)
         latest = df.iloc[-1]
         prev = df.iloc[-2]
         
@@ -119,9 +132,62 @@ class StockEngine:
         if latest['Close'] > latest['EMA50']: score += 1
         else: score -= 1
         
-        if score >= 2: return "Buy (شراء)"
-        if score <= -2: return "Sell (بيع)"
-        return "Hold (انتظار/مراقبة)"
+        # Determine Signal and Levels
+        signal = "Hold (انتظار/مراقبة)"
+        levels = {}
+        
+        close_price = latest['Close']
+        atr = latest['ATR'] if not pd.isna(latest['ATR']) else (close_price * 0.02) # Fallback if ATR is NaN
+        
+        if score >= 2:
+            signal = "Buy (شراء)"
+            levels = {
+                "Entry": close_price,
+                "SL": close_price - (2 * atr),
+                "TP": close_price + (4 * atr)
+            }
+        elif score <= -2:
+            signal = "Sell (بيع)"
+            levels = {
+                "Entry": close_price,
+                "SL": close_price + (2 * atr),
+                "TP": close_price - (4 * atr)
+            }
+            
+        return signal, levels
+
+    def scan_market(self, tickers=None):
+        """Scans a list of tickers for Buy signals."""
+        if tickers is None:
+            # Default to top US Tech stocks
+            tickers = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "META", "AMD", "NFLX", "INTC"]
+            
+        opportunities = []
+        
+        for ticker in tickers:
+            try:
+                # Create a temporary engine for each ticker
+                temp_engine = StockEngine(ticker)
+                hist = temp_engine.get_market_data(period="6mo")
+                
+                if len(hist) < 50: continue # Skip if not enough data
+                
+                hist = temp_engine.calculate_technical_indicators(hist)
+                signal, levels = temp_engine.get_recommendation(hist)
+                
+                if "Buy" in signal:
+                    opportunities.append({
+                        "ticker": ticker,
+                        "signal": signal,
+                        "price": levels['Entry'],
+                        "sl": levels['SL'],
+                        "tp": levels['TP']
+                    })
+            except Exception as e:
+                print(f"Error scanning {ticker}: {e}")
+                continue
+                
+        return opportunities
 
 if __name__ == "__main__":
     # Test with a known stock
