@@ -3,10 +3,28 @@ import pandas as pd
 import numpy as np
 
 class StockEngine:
+    TICKER_MAP = {
+        "SPX": "^GSPC",
+        "NDX": "^NDX",
+        "DJI": "^DJI",
+        "VIX": "^VIX"
+    }
+
     def __init__(self, ticker):
-        self.ticker_symbol = ticker.upper()
+        self.original_ticker = ticker.upper()
+        self.ticker_symbol = self.TICKER_MAP.get(self.original_ticker, self.original_ticker)
         self.ticker = yf.Ticker(self.ticker_symbol)
-        self.info = self.ticker.info
+        
+        try:
+            self.info = self.ticker.info
+        except:
+            self.info = {}
+        
+        if not self.info:
+            self.info = {}
+            
+        if "longName" not in self.info and "shortName" in self.info:
+            self.info["longName"] = self.info["shortName"]
         
     def get_market_data(self, period="1y", interval="1d"):
         """Fetches historical market data."""
@@ -50,18 +68,18 @@ class StockEngine:
             industry = self.info.get("industry", "")
             
             if sector in prohibited_sectors or industry in prohibited_sectors:
-                return False, f"Non-Compliant Sector: {sector or industry}"
+                return False, f"قطاع غير متوافق: {sector or industry}"
 
             # 2. Financial Ratios
             # Market Cap
             market_cap = self.info.get("marketCap")
             if not market_cap:
-                return None, "Market Cap data missing"
+                return None, "بيانات القيمة السوقية مفقودة"
 
             # Balance Sheet Data
             balance_sheet = self.ticker.quarterly_balance_sheet
             if balance_sheet.empty:
-                return None, "Balance Sheet data missing"
+                return None, "بيانات الميزانية العمومية مفقودة"
             
             latest_bs = balance_sheet.iloc[:, 0] # Get most recent quarter
             
@@ -85,19 +103,19 @@ class StockEngine:
             
             if debt_ratio >= 0.33:
                 compliant = False
-                reasons.append(f"Debt/MarketCap: {debt_ratio:.2%} (Limit: 33%)")
+                reasons.append(f"الديون/القيمة: {debt_ratio:.2%} (الحد: 33%)")
             if cash_interest_ratio >= 0.33:
                 compliant = False
-                reasons.append(f"Cash+Interest/MarketCap: {cash_interest_ratio:.2%} (Limit: 33%)")
+                reasons.append(f"الكاش/القيمة: {cash_interest_ratio:.2%} (الحد: 33%)")
             if receivables_ratio >= 0.49:
                 compliant = False
-                reasons.append(f"Receivables/TotalAssets: {receivables_ratio:.2%} (Limit: 49%)")
+                reasons.append(f"المستحقات/الأصول: {receivables_ratio:.2%} (الحد: 49%)")
                 
-            status_desc = "Compliant" if compliant else "Non-Compliant: " + ", ".join(reasons)
+            status_desc = "متوافق" if compliant else "غير متوافق: " + ", ".join(reasons)
             return compliant, status_desc
 
         except Exception as e:
-            return None, f"Error during screening: {str(e)}"
+            return None, f"خطأ أثناء الفحص الشرعي: {str(e)}"
 
     def calculate_atr(self, df, period=14):
         """Calculates Average True Range (ATR)."""
@@ -119,14 +137,18 @@ class StockEngine:
         
         score = 0
         # RSI Check
-        if latest['RSI'] < 30: score += 2 # Oversold
+        if latest['RSI'] < 40: score += 1 # Undervalued / Approaching oversold
         elif latest['RSI'] > 70: score -= 2 # Overbought
         
-        # MACD Cross
-        if latest['MACD'] > latest['Signal_Line'] and prev['MACD'] <= prev['Signal_Line']:
-            score += 2 # Bullish cross
-        elif latest['MACD'] < latest['Signal_Line'] and prev['MACD'] >= prev['Signal_Line']:
-            score -= 2 # Bearish cross
+        # MACD Trend and Cross
+        if latest['MACD'] > latest['Signal_Line']:
+            score += 1 # Bullish MACD Trend
+            if prev['MACD'] <= prev['Signal_Line']:
+                score += 1 # Bullish cross today
+        elif latest['MACD'] < latest['Signal_Line']:
+            score -= 1 # Bearish MACD Trend
+            if prev['MACD'] >= prev['Signal_Line']:
+                score -= 1 # Bearish cross today
             
         # EMA Trend
         if latest['Close'] > latest['EMA50']: score += 1
@@ -159,8 +181,13 @@ class StockEngine:
     def scan_market(self, tickers=None):
         """Scans a list of tickers for Buy signals."""
         if tickers is None:
-            # Default to top US Tech stocks
-            tickers = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "META", "AMD", "NFLX", "INTC"]
+            # Expanded default list: Top Tech, Financials, Healthcare, Consumer
+            tickers = [
+                "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "META", "AMD", "NFLX", "INTC",
+                "JPM", "V", "WMT", "JNJ", "PG", "HD", "CVX", "LLY", "UNH", "MA", 
+                "ABBV", "PEP", "BAC", "KO", "COST", "AVGO", "CRM", "ACN", "DIS", "CSCO",
+                "MCD", "ABT", "TMO", "PFE", "NKE", "DHR", "CMCSA", "ADBE", "NFLX", "QCOM"
+            ]
             
         opportunities = []
         

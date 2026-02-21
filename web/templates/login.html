@@ -6,48 +6,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EAGLES OF SPX - تسجيل الدخول</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Cairo:wght@400;700&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 
 <body>
-    <div class="login-container">
-        <div class="logo-container">
-            <!-- Placeholder for logo, user can replace this file -->
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="EAGLES OF SPX Logo" class="logo">
-            <h1>EAGLES OF SPX</h1>
-        </div>
-
-        <form method="POST" class="login-form">
-            {% if error %}
-            <p class="error-message">{{ error }}</p>
-            {% endif %}
-
-            <div class="input-group">
-                <i class="fas fa-user input-icon"></i>
-                <input type="text" name="username" placeholder="اسم المستخدم" required>
+    <div class="login-wrapper">
+        <div class="login-container glass-panel">
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="EAGLES OF SPX Logo" class="logo">
+                <h1>EAGLES OF SPX</h1>
+                <p class="login-subtitle">نظام التداول الذكي المتوافق مع الشريعة</p>
             </div>
 
-            <div class="input-group">
-                <i class="fas fa-lock input-icon"></i>
-                <input type="password" name="password" placeholder="كلمة المرور" required>
-            </div>
+            <form method="POST" class="login-form">
+                {% if error %}
+                <div class="error-message">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>{{ error }}</span>
+                </div>
+                {% endif %}
 
-            <button type="submit" class="login-btn">تسجيل الدخول</button>
-        </form>
+                <div class="input-group">
+                    <input type="text" name="username" placeholder="اسم المستخدم" required autocomplete="off">
+                    <i class="fas fa-user input-icon"></i>
+                </div>
 
-        <div class="contact-section">
-            <p>تواصل معنا</p>
-            <div class="social-icons">
-                <a href="https://t.me/Eagles_of_spx" target="_blank" class="social-link telegram"><i
-                        class="fab fa-telegram-plane"></i></a>
-                <a href="https://tiktok.com/@eagles_of_spx" target="_blank" class="social-link tiktok"><i
-                        class="fab fa-tiktok"></i></a>
-                <a href="https://wa.me/0530131193" target="_blank" class="social-link whatsapp"><i
-                        class="fab fa-whatsapp"></i></a>
+                <div class="input-group">
+                    <input type="password" name="password" placeholder="كلمة المرور" required>
+                    <i class="fas fa-lock input-icon"></i>
+                </div>
+
+                <button type="submit" class="login-btn">
+                    تسجيل الدخول
+                    <i class="fas fa-arrow-left" style="margin-right: 8px;"></i>
+                </button>
+            </form>
+
+            <div class="contact-section">
+                <p>تواصل معنا للحصول على حساب</p>
+                <div class="social-icons">
+                    <a href="https://t.me/Eagles_of_spx" target="_blank" class="social-link telegram"><i
+                            class="fab fa-telegram-plane"></i></a>
+                    <a href="https://tiktok.com/@eagles_of_spx" target="_blank" class="social-link tiktok"><i
+                            class="fab fa-tiktok"></i></a>
+                    <a href="https://wa.me/0530131193" target="_blank" class="social-link whatsapp"><i
+                            class="fab fa-whatsapp"></i></a>
+                </div>
+                <div class="contact-number">0530131193</div>
             </div>
-            <p class="contact-number">0530131193</p>
         </div>
     </div>
 </body>

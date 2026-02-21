@@ -20,7 +20,7 @@ app.secret_key = secrets.token_hex(16)
 # In production, use a database or environment variables
 USERNAME = "admin"
 PASSWORD = "Az@123"
-DEFAULT_API_KEY = "AIzaSyCWPlKqiET1w46PSJ8WbRgGYwGIQczwrgM"
+DEFAULT_API_KEY = "gsk_..." # Placeholder Groq Key
 
 @app.route('/')
 def index():
@@ -36,7 +36,7 @@ def login():
             session['username'] = request.form['username']
             return redirect(url_for('dashboard'))
         else:
-            error = 'Invalid credentials. Please try again.'
+            error = 'بيانات الدخول غير صحيحة. يرجى المحاولة مرة أخرى.'
     return render_template('login.html', error=error)
 
 @app.route('/dashboard')
@@ -58,8 +58,8 @@ def set_key():
     data = request.json
     api_key = data.get('api_key')
     if api_key:
-        session['openai_api_key'] = api_key
-        return {"status": "success", "message": "API Key saved for this session."}
+        session['groq_api_key'] = api_key
+        return {"status": "success", "message": "تم حفظ مفتاح Groq الخاص بك بنجاح."}
     return {"error": "No key provided"}, 400
 
 @app.route('/api/chat', methods=['POST'])
@@ -148,8 +148,8 @@ def chat():
                 fig.add_hline(y=levels['Entry'], line_dash="dot", line_color="white", annotation_text="Entry")
 
             fig.update_layout(
-                title=f'{ticker} Analysis',
-                yaxis_title='Price',
+                title=f'تحليل {ticker}',
+                yaxis_title='السعر',
                 template="plotly_dark",
                 height=400,
                 margin=dict(l=20, r=20, t=40, b=20),
@@ -192,24 +192,33 @@ def chat():
             is_halal, reason = engine.screen_shariah_compliance()
             
             # Use the AI Analyzer with session key
-            api_key = session.get('openai_api_key') or DEFAULT_API_KEY
+            api_key = session.get('groq_api_key') or DEFAULT_API_KEY
             analyzer = AIAnalyzer(api_key=api_key) 
             response = analyzer.get_ai_insight(ticker, engine.info, hist, reason)
             
-        elif "عطني سهم" in user_message or "توصيات" in user_message or "فرص" in user_message or "سهم" in user_message:
-            opportunities = engine.scan_market()
+        elif "عطني سهم" in user_message or "توصيات" in user_message or "فرص" in user_message or "سهم" in user_message or "شراء" in user_message:
+            # If no ticker was in session, engine might not exist
+            scan_engine = StockEngine("SPY") if not ticker else engine 
+            opportunities = scan_engine.scan_market()
             
             if not opportunities:
-                response = "🔍 قمت بفحص أهم الأسهم التقنية ولم أجد فرص **شراء** واضحة حالياً بناءً على المؤشرات الفنية. السوق قد يكون في حالة تذبذب أو هبوط."
+                response = "🔍 قمت بفحص أهم الأسهم ولم أجد فرص **شراء** واضحة حالياً بناءً على المؤشرات الفنية. السوق قد يكون في حالة تذبذب أو هبوط."
             else:
-                response = "🚀 **الفرص المتاحة حالياً (إشارة شراء):**\n\n"
-                for opp in opportunities:
-                    response += f"🔹 **{opp['ticker']}** بسعر ${opp['price']:.2f}\n"
-                    response += f"   🎯 هدف: ${opp['tp']:.2f} | 🛑 وقف: ${opp['sl']:.2f}\n"
-                    response += f"-----------------------------------\n"
+                api_key = session.get('groq_api_key') or DEFAULT_API_KEY
+                analyzer = AIAnalyzer(api_key=api_key) 
+                ai_opportunities_insight = analyzer.get_opportunities_insight(opportunities)
                 
-                response += "\n⚠️ *هذه ليست نصيحة مالية، بل تحليل فني آلي.*"
-
+                if ai_opportunities_insight:
+                    response = f"🚀 **تحليل الذكاء الاصطناعي لأفضل الفرص المتاحة:**\n\n{ai_opportunities_insight}"
+                else:
+                    response = "🚀 **الفرص المتاحة حالياً (إشارة شراء فنية):**\n\n"
+                    for opp in opportunities:
+                        response += f"🔹 **{opp['ticker']}** بسعر ${opp['price']:.2f}\n"
+                        response += f"   🎯 هدف: ${opp['tp']:.2f} | 🛑 وقف: ${opp['sl']:.2f}\n"
+                        response += f"-----------------------------------\n"
+                    
+                    response += "\n⚠️ *هذه ليست نصيحة مالية، بل تحليل فني آلي.*"
+                    
         elif "مرحبا" in user_message or "هلا" in user_message:
              response = f"مرحباً بك يا {session['username']}! أنا جاهز لتحليل الأسواق. جرب أن تسألني عن 'تحليل فني لـ TSLA' أو 'رأي الذكاء الاصطناعي في AAPL'."
              
@@ -222,7 +231,7 @@ def chat():
             is_halal, compliance_reason = engine.screen_shariah_compliance()
             
             # 1. AI Analysis
-            api_key = session.get('openai_api_key') or DEFAULT_API_KEY
+            api_key = session.get('groq_api_key') or DEFAULT_API_KEY
             analyzer = AIAnalyzer(api_key=api_key) 
             ai_insight = analyzer.get_ai_insight(ticker, engine.info, hist, compliance_reason)
             
@@ -240,8 +249,8 @@ def chat():
                 fig.add_hline(y=levels['Entry'], line_dash="dot", line_color="white", annotation_text="Entry")
 
             fig.update_layout(
-                title=f'{ticker} Analysis',
-                yaxis_title='Price',
+                title=f'تحليل {ticker}',
+                yaxis_title='السعر',
                 template="plotly_dark",
                 height=400,
                 margin=dict(l=20, r=20, t=40, b=20),
