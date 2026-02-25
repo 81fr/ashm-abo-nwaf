@@ -5,16 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EAGLES OF SPX - لوحة التحكم</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cairo:wght@400;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    
+
     <style>
         body {
             display: block;
             padding: 0;
-            background-image: 
+            background-image:
                 radial-gradient(circle at 0% 0%, rgba(226, 192, 68, 0.08) 0%, transparent 50%),
                 radial-gradient(circle at 100% 100%, rgba(226, 192, 68, 0.05) 0%, transparent 50%),
                 linear-gradient(135deg, #050505 0%, #0a0a0a 100%);
@@ -41,7 +43,7 @@
             right: 0;
             top: 0;
             z-index: 100;
-            box-shadow: -5px 0 25px rgba(0,0,0,0.5);
+            box-shadow: -5px 0 25px rgba(0, 0, 0, 0.5);
             transition: transform 0.3s ease;
         }
 
@@ -51,7 +53,7 @@
             gap: 15px;
             margin-bottom: 3rem;
             padding-bottom: 2rem;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .brand-logo img {
@@ -96,11 +98,12 @@
             font-size: 1.2rem;
             width: 20px;
             text-align: center;
-            color: rgba(255,255,255,0.5);
+            color: rgba(255, 255, 255, 0.5);
             transition: color 0.3s ease;
         }
 
-        .nav-link:hover, .nav-link.active {
+        .nav-link:hover,
+        .nav-link.active {
             background: rgba(226, 192, 68, 0.1);
             color: var(--primary-gold);
             transform: translateX(-5px);
@@ -111,7 +114,8 @@
             background: linear-gradient(90deg, transparent, rgba(226, 192, 68, 0.15));
         }
 
-        .nav-link:hover i, .nav-link.active i {
+        .nav-link:hover i,
+        .nav-link.active i {
             color: var(--primary-gold);
         }
 
@@ -120,9 +124,9 @@
             align-items: center;
             gap: 15px;
             padding: 15px;
-            background: rgba(0,0,0,0.3);
+            background: rgba(0, 0, 0, 0.3);
             border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.05);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             margin-bottom: 1rem;
             color: #fff;
         }
@@ -145,7 +149,7 @@
             color: #fff;
             margin-bottom: 2px;
         }
-        
+
         .user-info-text p {
             font-size: 0.8rem;
             color: var(--success-green);
@@ -178,12 +182,12 @@
         /* --- Main Content --- */
         .main-content {
             margin-right: 280px;
-            padding: 2.5rem;
+            padding: 1rem;
             width: calc(100% - 280px);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            gap: 2rem;
+            gap: 1rem;
         }
 
         .top-bar {
@@ -223,14 +227,26 @@
         }
 
         @keyframes pulse-green {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(46, 204, 113, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7);
+            }
+
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 6px rgba(46, 204, 113, 0);
+            }
+
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(46, 204, 113, 0);
+            }
         }
 
         .dashboard-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
+            /* Full width chat panel */
             gap: 2rem;
             align-items: start;
         }
@@ -245,7 +261,7 @@
             box-shadow: var(--shadow-soft);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-        
+
         .panel-card:hover {
             box-shadow: var(--shadow-soft), var(--shadow-glow);
             border-color: rgba(226, 192, 68, 0.3);
@@ -257,7 +273,7 @@
             gap: 12px;
             margin-bottom: 1.5rem;
             padding-bottom: 1rem;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .panel-header i {
@@ -278,7 +294,7 @@
         }
 
         .api-input-group input {
-            background: rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.5);
             padding: 12px 15px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
@@ -306,33 +322,32 @@
         .chat-container {
             display: flex;
             flex-direction: column;
-            height: 600px;
+            height: auto;
+            min-height: calc(100vh - 120px);
         }
 
         .chat-messages {
             flex-grow: 1;
-            overflow-y: auto;
+            overflow-y: visible;
             padding: 1rem;
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
             margin-bottom: 1.5rem;
-            background: rgba(0,0,0,0.2);
+            background: rgba(0, 0, 0, 0.2);
             border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.02);
-            scrollbar-width: thin;
-        }
-
-        .chat-messages::-webkit-scrollbar {
-            width: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.02);
         }
 
         .message-bubble {
-            max-width: 85%;
-            padding: 15px 20px;
-            border-radius: 15px;
+            max-width: 98%;
+            /* Maximized width for better table visibility */
+            padding: 12px 16px;
+            /* Tighter padding */
+            border-radius: 12px;
             line-height: 1.6;
-            font-size: 0.95rem;
+            font-size: 0.85rem;
+            /* Decreased font size for clearer view */
             position: relative;
             animation: fadeIn 0.3s ease;
         }
@@ -356,10 +371,10 @@
         .chat-input-wrapper {
             display: flex;
             gap: 10px;
-            background: rgba(10,10,10,0.8);
+            background: rgba(10, 10, 10, 0.8);
             padding: 10px;
             border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             align-items: center;
         }
 
@@ -400,7 +415,7 @@
         .quick-actions-wrapper {
             margin-bottom: 1.5rem;
         }
-        
+
         .quick-actions-title {
             font-size: 0.85rem;
             color: var(--text-grey);
@@ -420,7 +435,7 @@
         }
 
         .action-pill {
-            background: rgba(255,255,255,0.03);
+            background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(226, 192, 68, 0.3);
             color: var(--text-white);
             padding: 8px 16px;
@@ -452,35 +467,74 @@
             .dashboard-layout {
                 flex-direction: column;
             }
+
             .sidebar {
                 width: 100%;
                 height: auto;
                 position: relative;
                 padding: 1.5rem;
-                box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+                box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
             }
+
             .main-content {
                 margin-right: 0;
                 width: 100%;
                 padding: 1.5rem;
             }
+
             .dashboard-grid {
                 grid-template-columns: 1fr;
             }
+
             .nav-menu {
                 flex-direction: row;
                 overflow-x: auto;
                 padding-bottom: 5px;
             }
+
             .nav-link {
                 white-space: nowrap;
             }
         }
-        
-        .message-bot h3, .message-bot h4 { margin-top: 15px; margin-bottom: 10px; color: var(--primary-gold); }
-        .message-bot ul { margin-right: 20px; margin-bottom: 15px; }
-        .message-bot li { margin-bottom: 5px; }
-        .message-bot strong { color: #fff; }
+
+        .message-bot h3,
+        .message-bot h4 {
+            margin-top: 15px;
+            margin-bottom: 10px;
+            color: var(--primary-gold);
+        }
+
+        .message-bot ul {
+            margin-right: 20px;
+            margin-bottom: 15px;
+        }
+
+        .message-bot li {
+            margin-bottom: 5px;
+        }
+
+        .message-bot strong {
+            color: #fff;
+        }
+
+        .timeframe-select {
+            background: rgba(40, 40, 40, 0.8);
+            color: var(--primary-gold);
+            border: 1px solid rgba(226, 192, 68, 0.3);
+            padding: 10px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .timeframe-select:hover {
+            border-color: var(--primary-gold);
+            box-shadow: 0 0 10px rgba(226, 192, 68, 0.2);
+        }
+
         .recommendation-box {
             padding: 15px;
             border-radius: 8px;
@@ -488,17 +542,33 @@
             font-weight: bold;
             font-size: 1.1rem;
             margin: 15px 0;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
-        .recommendation-box.buy { background: linear-gradient(135deg, rgba(46, 204, 113, 0.2), rgba(46, 204, 113, 0.4)); border: 1px solid #2ecc71; color: #fff; }
-        .recommendation-box.sell { background: linear-gradient(135deg, rgba(231, 76, 60, 0.2), rgba(231, 76, 60, 0.4)); border: 1px solid #e74c3c; color: #fff; }
-        .recommendation-box.hold { background: linear-gradient(135deg, rgba(241, 196, 15, 0.2), rgba(241, 196, 15, 0.4)); border: 1px solid #f1c40f; color: #fff; }
+
+        .recommendation-box.buy {
+            background: linear-gradient(135deg, rgba(46, 204, 113, 0.2), rgba(46, 204, 113, 0.4));
+            border: 1px solid #2ecc71;
+            color: #fff;
+        }
+
+        .recommendation-box.sell {
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.2), rgba(231, 76, 60, 0.4));
+            border: 1px solid #e74c3c;
+            color: #fff;
+        }
+
+        .recommendation-box.hold {
+            background: linear-gradient(135deg, rgba(241, 196, 15, 0.2), rgba(241, 196, 15, 0.4));
+            border: 1px solid #f1c40f;
+            color: #fff;
+        }
 
         .typing-indicator {
             display: inline-flex;
             gap: 4px;
             padding: 5px 10px;
         }
+
         .typing-dot {
             width: 6px;
             height: 6px;
@@ -506,18 +576,33 @@
             border-radius: 50%;
             animation: bounce 1.4s infinite ease-in-out both;
         }
-        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
-        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        .typing-dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
         @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1); }
+
+            0%,
+            80%,
+            100% {
+                transform: scale(0);
+            }
+
+            40% {
+                transform: scale(1);
+            }
         }
     </style>
 </head>
 
 <body>
     <div class="dashboard-layout">
-        
+
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="brand-logo">
@@ -551,7 +636,7 @@
 
         <!-- Main Content Area -->
         <main class="main-content">
-            
+
             <header class="top-bar">
                 <h1 class="page-title">نظرة عامة على السوق</h1>
                 <div class="status-badge">
@@ -561,7 +646,7 @@
             </header>
 
             <div class="dashboard-grid">
-                
+
                 <!-- AI Chat Interface -->
                 <div class="panel-card chat-container" style="grid-column: span 1;">
                     <div class="panel-header">
@@ -569,24 +654,35 @@
                         <h3>المستشار المالي الذكي</h3>
                     </div>
 
-                    <div class="quick-actions-wrapper">
-                        <div class="quick-actions-title"><i class="fas fa-bolt"></i> إجراءات سريعة:</div>
-                        <div class="quick-actions">
-                            <button onclick="sendQuickMessage('تحليل شامل لـ AAPL')" class="action-pill"><i class="fas fa-chart-pie"></i> تقرير AAPL</button>
-                            <button onclick="sendQuickMessage('تحليل فني')" class="action-pill"><i class="fas fa-chart-line"></i> تحليل فني</button>
-                            <button onclick="sendQuickMessage('عطني الأسهم الإيجابية الآن')" class="action-pill"><i class="fas fa-search-dollar"></i> الأسهم الإيجابية</button>
-                        </div>
-                    </div>
-
                     <div class="chat-messages" id="chat-messages">
                         <div class="message-bubble message-bot">
                             مرحباً بك! أنا المستشار الآلي الخاص بك من EAGLES OF SPX.<br><br>
-                            يمكنني تحليل أي سهم أمريكي لك (فني، مالي، وشرعي). قم بكتابة رمز السهم (مثل TSLA) أو اسألني للحصول على فرص متاحة حالياً.
+                            يمكنني تحليل أي سهم أمريكي لك (فني، مالي، وشرعي). قم بكتابة رمز السهم (مثل TSLA) أو اسألني
+                            للحصول على فرص متاحة حالياً.
+                        </div>
+                    </div>
+
+                    <div class="quick-actions-wrapper" style="margin-bottom: 10px;">
+                        <div class="quick-actions">
+                            <button onclick="sendQuickMessage('تحليل شامل لـ AAPL')" class="action-pill"><i
+                                    class="fas fa-chart-pie"></i> تقرير AAPL</button>
+                            <button onclick="sendQuickMessage('تحليل فني')" class="action-pill"><i
+                                    class="fas fa-chart-line"></i> تحليل فني</button>
+                            <button onclick="sendQuickMessage('عطني الأسهم الإيجابية الآن')" class="action-pill"><i
+                                    class="fas fa-search-dollar"></i> الأسهم الإيجابية الآن</button>
                         </div>
                     </div>
 
                     <div class="chat-input-wrapper">
-                        <input type="text" id="user-input" placeholder="اكتب رمز السهم أو سؤالك هنا..." autocomplete="off">
+                        <select id="timeframe-select" class="timeframe-select" title="الإطار الزمني للتحليل">
+                            <option value="15m" selected>15 دقيقة</option>
+                            <option value="30m">30 دقيقة</option>
+                            <option value="1h">1 ساعة</option>
+                            <option value="1d">1 يوم</option>
+                            <option value="1mo">1 شهر</option>
+                        </select>
+                        <input type="text" id="user-input" placeholder="اكتب رمز السهم أو سؤالك هنا..."
+                            autocomplete="off">
                         <button onclick="sendMessage()" class="send-btn" id="send-btn">
                             <i class="fas fa-paper-plane"></i>
                         </button>
@@ -595,13 +691,15 @@
 
                 <!-- Settings and Charts Column -->
                 <div style="display: flex; flex-direction: column; gap: 2rem;">
-                    
-                    <div class="panel-card">
+
+                    <div class="panel-card" style="display: none;">
                         <div class="panel-header">
                             <i class="fas fa-cog"></i>
                             <h3>إعدادات محرك الذكاء الاصطناعي</h3>
                         </div>
-                        <p style="color: var(--text-grey); font-size: 0.9rem; margin-bottom: 15px;">للحصول على تحليلات دقيقة جداً ومخصصة من الذكاء الاصطناعي، يرجى إدخال مفتاح واجهة برمجة التطبيقات (API) الخاص بك (اختياري، يوجد مفتاح افتراضي مثبت مسبقاً).</p>
+                        <p style="color: var(--text-grey); font-size: 0.9rem; margin-bottom: 15px;">للحصول على تحليلات
+                            دقيقة جداً ومخصصة من الذكاء الاصطناعي، يرجى إدخال مفتاح واجهة برمجة التطبيقات (API) الخاص بك
+                            (اختياري، يوجد مفتاح افتراضي مثبت مسبقاً).</p>
                         <div class="api-input-group">
                             <input type="password" id="api-key-input" placeholder="المفتاح..." class="glass-input">
                             <button onclick="saveApiKey()" class="btn-primary">
@@ -615,7 +713,7 @@
                             <i class="fas fa-chart-area"></i>
                             <h3>الرؤية البصرية للسعر</h3>
                         </div>
-                        <div id="plotly-chart" style="width: 100%; height: 350px;"></div>
+                        <div id="plotly-chart" style="width: 100%; height: 600px;"></div>
                     </div>
 
                 </div>
@@ -643,7 +741,7 @@
                 </div>
             `;
             messagesContainer.appendChild(indicatorDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
 
         function removeTypingIndicator() {
@@ -654,7 +752,9 @@
         async function sendMessage() {
             const inputField = document.getElementById('user-input');
             const sendBtn = document.getElementById('send-btn');
+            const timeframeSelect = document.getElementById('timeframe-select');
             const message = inputField.value.trim();
+            const timeframe = timeframeSelect ? timeframeSelect.value : '15m';
             if (!message) return;
 
             inputField.disabled = true;
@@ -670,7 +770,7 @@
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: message })
+                    body: JSON.stringify({ message: message, timeframe: timeframe })
                 });
 
                 const data = await response.json();
@@ -681,7 +781,7 @@
                     const chartWrapper = document.getElementById('chart-wrapper');
                     chartWrapper.style.display = 'block';
                     const chartData = JSON.parse(data.chart);
-                    Plotly.newPlot('plotly-chart', chartData.data, chartData.layout, {responsive: true});
+                    Plotly.newPlot('plotly-chart', chartData.data, chartData.layout, { responsive: true });
                 }
             } catch (error) {
                 removeTypingIndicator();
@@ -705,12 +805,12 @@
                     body: JSON.stringify({ api_key: apiKey })
                 });
                 const data = await response.json();
-                
+
                 const btn = document.querySelector('.btn-primary');
                 const originalText = btn.innerHTML;
                 btn.innerHTML = '<i class="fas fa-check"></i> ' + (data.message || "تم الحفظ بنجاح");
                 btn.style.background = 'linear-gradient(135deg, #2ecc71, #27ae60)';
-                
+
                 setTimeout(() => {
                     btn.innerHTML = originalText;
                     btn.style.background = '';
@@ -728,7 +828,7 @@
             messageDiv.classList.add('message-bubble', `message-${sender}`);
             messageDiv.innerHTML = text;
             messagesContainer.appendChild(messageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
 
         document.getElementById('user-input').addEventListener('keypress', function (e) {
@@ -736,8 +836,8 @@
                 sendMessage();
             }
         });
-        
-        window.addEventListener('resize', function() {
+
+        window.addEventListener('resize', function () {
             const chartDiv = document.getElementById('plotly-chart');
             if (chartDiv && chartDiv.layout) {
                 Plotly.Plots.resize(chartDiv);

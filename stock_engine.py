@@ -28,8 +28,12 @@ class StockEngine:
         
     def get_market_data(self, period="1y", interval="1d"):
         """Fetches historical market data."""
-        history = self.ticker.history(period=period, interval=interval)
-        return history
+        try:
+            history = self.ticker.history(period=period, interval=interval)
+            return history
+        except Exception as e:
+            print(f"Error fetching data for {self.original_ticker}: {e}")
+            return pd.DataFrame()
 
     def calculate_technical_indicators(self, df):
         """Calculates RSI, MACD, and EMA."""
@@ -49,6 +53,16 @@ class StockEngine:
         exp2 = df['Close'].ewm(span=26, adjust=False).mean()
         df['MACD'] = exp1 - exp2
         df['Signal_Line'] = df['MACD'].ewm(span=9, adjust=False).mean()
+        
+        # Support and Resistance (Reversal Zones)
+        # Using a simple rolling window to find local minima and maxima
+        window = 20
+        df['Resistance'] = df['High'].rolling(window=window, center=False).max()
+        df['Support'] = df['Low'].rolling(window=window, center=False).min()
+        
+        # Shift back slightly so today's extreme doesn't immediately become the line if it's new
+        df['Resistance'] = df['Resistance'].shift(1)
+        df['Support'] = df['Support'].shift(1)
         
         return df
 
@@ -161,6 +175,9 @@ class StockEngine:
         close_price = latest['Close']
         atr = latest['ATR'] if not pd.isna(latest['ATR']) else (close_price * 0.02) # Fallback if ATR is NaN
         
+        support = latest['Support'] if 'Support' in latest and not pd.isna(latest['Support']) else close_price * 0.95
+        resistance = latest['Resistance'] if 'Resistance' in latest and not pd.isna(latest['Resistance']) else close_price * 1.05
+        
         if score >= 2:
             signal = "Buy (شراء)"
             levels = {
@@ -175,6 +192,9 @@ class StockEngine:
                 "SL": close_price + (2 * atr),
                 "TP": close_price - (4 * atr)
             }
+            
+        levels["Support"] = support
+        levels["Resistance"] = resistance
             
         return signal, levels
 
@@ -215,6 +235,42 @@ class StockEngine:
                 continue
                 
         return opportunities
+
+    def get_options_data(self):
+        """Fetches and summarizes options data for the nearest expiration."""
+        try:
+            expirations = self.ticker.options
+            if not expirations:
+                return None
+                
+            nearest_expiry = expirations[0]
+            chain = self.ticker.option_chain(nearest_expiry)
+            
+            calls = chain.calls
+            puts = chain.puts
+            
+            # Extract total volume and open interest
+            call_vol = calls['volume'].sum() if not calls['volume'].empty else 0
+            put_vol = puts['volume'].sum() if not puts['volume'].empty else 0
+            call_oi = calls['openInterest'].sum() if not calls['openInterest'].empty else 0
+            put_oi = puts['openInterest'].sum() if not puts['openInterest'].empty else 0
+            
+            # Put/Call Ratio
+            pc_ratio_vol = put_vol / call_vol if call_vol > 0 else 0
+            pc_ratio_oi = put_oi / call_oi if call_oi > 0 else 0
+            
+            return {
+                "expirationDate": nearest_expiry,
+                "callVolume": call_vol,
+                "putVolume": put_vol,
+                "callOpenInterest": call_oi,
+                "putOpenInterest": put_oi,
+                "putCallRatioVol": round(pc_ratio_vol, 2),
+                "putCallRatioOI": round(pc_ratio_oi, 2)
+            }
+        except Exception as e:
+            print(f"Error fetching options for {self.original_ticker}: {e}")
+            return None
 
 if __name__ == "__main__":
     # Test with a known stock

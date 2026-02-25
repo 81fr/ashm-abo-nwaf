@@ -13,6 +13,28 @@
     --glass-blur: blur(12px);
     --shadow-soft: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
     --shadow-glow: 0 0 15px rgba(226, 192, 68, 0.15);
+
+    /* Dynamic Backgrounds */
+    --bg-grad-1: rgba(226, 192, 68, 0.08);
+    --bg-grad-2: rgba(226, 192, 68, 0.05);
+    --bg-base: #000000;
+    --bg-end: #0a0a0a;
+}
+
+[data-theme="light"] {
+    --primary-black: #f8f9fa;
+    --secondary-black: #ffffff;
+    --surface-color: rgba(255, 255, 255, 0.85);
+    --border-color: rgba(226, 192, 68, 0.4);
+    --border-highlight: rgba(226, 192, 68, 0.8);
+    --text-white: #212529;
+    --text-grey: #495057;
+    --shadow-soft: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+
+    --bg-grad-1: rgba(226, 192, 68, 0.15);
+    --bg-grad-2: rgba(226, 192, 68, 0.1);
+    --bg-base: #f1f3f5;
+    --bg-end: #e9ecef;
 }
 
 * {
@@ -30,11 +52,12 @@ body {
     align-items: center;
     min-height: 100vh;
     background-image:
-        radial-gradient(circle at 15% 50%, rgba(226, 192, 68, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 85% 30%, rgba(226, 192, 68, 0.05) 0%, transparent 40%),
-        linear-gradient(135deg, #000000 0%, #0a0a0a 100%);
+        radial-gradient(circle at 15% 50%, var(--bg-grad-1) 0%, transparent 40%),
+        radial-gradient(circle at 85% 30%, var(--bg-grad-2) 0%, transparent 40%),
+        linear-gradient(135deg, var(--bg-base) 0%, var(--bg-end) 100%);
     background-attachment: fixed;
     overflow-x: hidden;
+    transition: background-color 0.4s, color 0.4s;
 }
 
 /* Base Glassmorphism Class */
@@ -360,4 +383,47 @@ input:focus+.input-icon,
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--primary-gold);
+}
+
+/* --------------- AI TABLE STYLES --------------- */
+.ai-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.95rem;
+    font-family: 'Cairo', sans-serif;
+    background: var(--surface-color);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.ai-table thead tr {
+    background: linear-gradient(135deg, var(--primary-gold) 0%, var(--primary-gold-dark) 100%);
+    color: #000;
+    text-align: right;
+    font-weight: bold;
+}
+
+.ai-table th,
+.ai-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.ai-table td {
+    color: var(--text-white);
+}
+
+.ai-table tbody tr:nth-of-type(even) {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.ai-table tbody tr:hover {
+    background-color: rgba(226, 192, 68, 0.05);
+}
+
+.ai-table tbody tr:last-of-type {
+    border-bottom: 2px solid var(--primary-gold);
 }

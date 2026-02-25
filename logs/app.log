@@ -1,0 +1,48 @@
+2026-02-23 04:28:56,028 WARNING werkzeug  * Debugger is active!
+2026-02-23 04:28:56,030 INFO werkzeug  * Debugger PIN: 525-502-569
+2026-02-23 04:30:12,874 INFO werkzeug  * Detected change in 'C:\\Users\\IT\\Documents\\GitHub\\ashm-abo-nwaf\\tests\\test_market_status.py', reloading
+2026-02-23 04:30:15,636 WARNING werkzeug  * Debugger is active!
+2026-02-23 04:30:15,638 INFO werkzeug  * Debugger PIN: 525-502-569
+2026-02-23 04:30:56,466 INFO werkzeug 127.0.0.1 - - [23/Feb/2026 04:30:56] "[32mGET / HTTP/1.1[0m" 302 -
+2026-02-23 04:30:56,478 INFO werkzeug 127.0.0.1 - - [23/Feb/2026 04:30:56] "GET /login HTTP/1.1" 200 -
+2026-02-23 04:30:56,530 INFO werkzeug 127.0.0.1 - - [23/Feb/2026 04:30:56] "GET /static/css/style.css HTTP/1.1" 200 -
+2026-02-23 04:30:56,536 INFO werkzeug 127.0.0.1 - - [23/Feb/2026 04:30:56] "[36mGET /static/images/logo.png HTTP/1.1[0m" 304 -
+2026-02-23 04:31:13,688 INFO werkzeug 127.0.0.1 - - [23/Feb/2026 04:31:13] "POST /login HTTP/1.1" 200 -
+2026-02-23 04:31:13,729 INFO werkzeug 127.0.0.1 - - [23/Feb/2026 04:31:13] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2026-02-23 04:31:13,733 INFO werkzeug 127.0.0.1 - - [23/Feb/2026 04:31:13] "[36mGET /static/images/logo.png HTTP/1.1[0m" 304 -
+2026-02-23 04:31:24,762 INFO werkzeug 127.0.0.1 - - [23/Feb/2026 04:31:24] "POST /login HTTP/1.1" 200 -
+2026-02-23 04:31:24,800 INFO werkzeug 127.0.0.1 - - [23/Feb/2026 04:31:24] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2026-02-23 04:31:24,809 INFO werkzeug 127.0.0.1 - - [23/Feb/2026 04:31:24] "[36mGET /static/images/logo.png HTTP/1.1[0m" 304 -
+2026-02-23 04:31:33,398 INFO werkzeug 127.0.0.1 - - [23/Feb/2026 04:31:33] "[32mPOST /login HTTP/1.1[0m" 302 -
+2026-02-23 04:31:33,422 INFO werkzeug 127.0.0.1 - - [23/Feb/2026 04:31:33] "GET /dashboard HTTP/1.1" 200 -
+2026-02-23 04:31:33,515 INFO werkzeug 127.0.0.1 - - [23/Feb/2026 04:31:33] "[36mGET /static/images/logo.png HTTP/1.1[0m" 304 -
+2026-02-23 04:31:33,515 INFO werkzeug 127.0.0.1 - - [23/Feb/2026 04:31:33] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2026-02-23 04:31:36,064 INFO werkzeug 127.0.0.1 - - [23/Feb/2026 04:31:36] "POST /api/chat HTTP/1.1" 200 -
+2026-02-23 04:31:48,840 INFO werkzeug 127.0.0.1 - - [23/Feb/2026 04:31:48] "POST /api/chat HTTP/1.1" 200 -
+2026-02-23 04:33:08,937 INFO werkzeug  * Detected change in 'C:\\Users\\IT\\Documents\\GitHub\\ashm-abo-nwaf\\ai_analyzer.py', reloading
+2026-02-23 04:33:11,932 WARNING werkzeug  * Debugger is active!
+2026-02-23 04:33:11,935 INFO werkzeug  * Debugger PIN: 525-502-569
+2026-02-23 04:33:26,725 INFO werkzeug [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.20.10.7:5000
+2026-02-23 04:33:26,725 INFO werkzeug [33mPress CTRL+C to quit[0m
+2026-02-23 04:33:26,733 INFO werkzeug  * Restarting with watchdog (windowsapi)
+2026-02-23 04:33:28,633 WARNING werkzeug  * Debugger is active!
+2026-02-23 04:33:28,635 INFO werkzeug  * Debugger PIN: 525-502-569
+2026-02-23 04:33:45,741 INFO werkzeug 127.0.0.1 - - [23/Feb/2026 04:33:45] "[32mGET / HTTP/1.1[0m" 302 -
+2026-02-23 04:33:45,756 INFO werkzeug 127.0.0.1 - - [23/Feb/2026 04:33:45] "GET /login HTTP/1.1" 200 -
+2026-02-23 04:33:45,823 INFO werkzeug 127.0.0.1 - - [23/Feb/2026 04:33:45] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2026-02-23 04:33:45,823 INFO werkzeug 127.0.0.1 - - [23/Feb/2026 04:33:45] "[36mGET /static/images/logo.png HTTP/1.1[0m" 304 -
+2026-02-23 04:34:52,997 INFO werkzeug  * Detected change in 'C:\\Users\\IT\\Documents\\GitHub\\ashm-abo-nwaf\\app.py', reloading
+2026-02-23 04:34:53,590 INFO werkzeug  * Restarting with watchdog (windowsapi)
+2026-02-23 04:34:55,615 WARNING werkzeug  * Debugger is active!
+2026-02-23 04:34:55,619 INFO werkzeug  * Debugger PIN: 525-502-569
+2026-02-23 04:35:16,629 INFO werkzeug  * Detected change in 'C:\\Users\\IT\\Documents\\GitHub\\ashm-abo-nwaf\\stock_engine.py', reloading
+2026-02-23 04:35:17,218 INFO werkzeug  * Restarting with watchdog (windowsapi)
+2026-02-23 04:48:51,025 INFO werkzeug  * Restarting with watchdog (windowsapi)
+2026-02-23 05:42:13,677 INFO werkzeug  * Restarting with watchdog (windowsapi)
+2026-02-23 05:42:46,873 INFO werkzeug  * Restarting with watchdog (windowsapi)
+2026-02-23 05:43:20,311 INFO werkzeug  * Restarting with watchdog (windowsapi)
+2026-02-23 05:54:06,891 INFO werkzeug  * Restarting with watchdog (windowsapi)
+2026-02-23 05:54:27,059 INFO werkzeug  * Restarting with watchdog (windowsapi)
