@@ -775,7 +775,15 @@
 
                 const data = await response.json();
                 removeTypingIndicator();
-                addMessage(data.response, 'bot');
+
+                if (data.response) {
+                    addMessage(data.response, 'bot');
+                } else if (data.error) {
+                    let errMsg = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
+                    addMessage("❌ خطأ من الخادم: " + errMsg, 'bot');
+                } else {
+                    addMessage("❌ استجابة غير متوقعة من الخادم: " + JSON.stringify(data), 'bot');
+                }
 
                 if (data.chart) {
                     const chartWrapper = document.getElementById('chart-wrapper');

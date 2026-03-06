@@ -201,13 +201,8 @@ class StockEngine:
     def scan_market(self, tickers=None):
         """Scans a list of tickers for Buy signals."""
         if tickers is None:
-            # Expanded default list: Top Tech, Financials, Healthcare, Consumer
-            tickers = [
-                "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "META", "AMD", "NFLX", "INTC",
-                "JPM", "V", "WMT", "JNJ", "PG", "HD", "CVX", "LLY", "UNH", "MA", 
-                "ABBV", "PEP", "BAC", "KO", "COST", "AVGO", "CRM", "ACN", "DIS", "CSCO",
-                "MCD", "ABT", "TMO", "PFE", "NKE", "DHR", "CMCSA", "ADBE", "NFLX", "QCOM"
-            ]
+            # Minimal list for Vercel 10s Serverless limit
+            tickers = ["AAPL", "MSFT", "NVDA", "TSLA", "META"]
             
         opportunities = []
         
