@@ -1,0 +1,48 @@
+[
+  {
+    "time": "2026-04-24 14:12:33",
+    "user": "admin",
+    "action": "\u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645: log_tester (\u0627\u0644\u0645\u0628\u0644\u063a: 500)"
+  },
+  {
+    "time": "2026-04-24 14:14:19",
+    "user": "admin",
+    "action": "\u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645: as (\u0627\u0644\u0645\u0628\u0644\u063a: 0)"
+  },
+  {
+    "time": "2026-04-24 14:14:44",
+    "user": "as",
+    "action": "\u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645: log_tester (\u0627\u0644\u0645\u0628\u0644\u063a: 311)"
+  },
+  {
+    "time": "2026-04-24 14:14:53",
+    "user": "as",
+    "action": "\u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645: log_tester (\u0627\u0644\u0645\u0628\u0644\u063a: 311)"
+  },
+  {
+    "time": "2026-04-24 14:15:01",
+    "user": "as",
+    "action": "\u062d\u0630\u0641 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645: log_tester"
+  },
+  {
+    "time": "2026-04-24 14:16:38",
+    "user": "admin",
+    "action": "\u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645: restore_test (\u0627\u0644\u0645\u0628\u0644\u063a: 999)",
+    "extra_data": null
+  },
+  {
+    "time": "2026-04-24 14:16:38",
+    "user": "admin",
+    "action": "\u062d\u0630\u0641 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645: restore_test",
+    "extra_data": {
+      "restore_data": {
+        "password": "secret999",
+        "start_date": "2024-01-01",
+        "end_date": "2025-01-01",
+        "role": "user",
+        "amount": "999"
+      },
+      "restore_username": "restore_test"
+    }
+  }
+]

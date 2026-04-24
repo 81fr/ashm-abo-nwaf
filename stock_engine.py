@@ -198,8 +198,8 @@ class StockEngine:
             
         return signal, levels
 
-    def scan_market(self, tickers=None):
-        """Scans a list of tickers for Buy signals."""
+    def scan_market(self, tickers=None, period="6mo", interval="1d"):
+        """Scans a list of tickers for Buy signals using specific timeframe."""
         if tickers is None:
             # Minimal list for Vercel 10s Serverless limit
             tickers = ["AAPL", "MSFT", "NVDA", "TSLA", "META"]
@@ -210,7 +210,7 @@ class StockEngine:
             try:
                 # Create a temporary engine for each ticker
                 temp_engine = StockEngine(ticker)
-                hist = temp_engine.get_market_data(period="6mo")
+                hist = temp_engine.get_market_data(period=period, interval=interval)
                 
                 if len(hist) < 50: continue # Skip if not enough data
                 

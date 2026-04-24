@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - إدارة المستخدمين</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            background: #0a0a0a;
+            color: #fff;
+            font-family: 'Cairo', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .admin-container {
+            background: rgba(20, 20, 20, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 192, 68, 0.2);
+            border-radius: 20px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 900px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 1rem;
+        }
+        .header h1 {
+            color: #d4af37;
+            font-size: 1.5rem;
+        }
+        .form-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            background: rgba(255,255,255,0.03);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+        input {
+            background: #000;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: inherit;
+        }
+        button {
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: 0.3s;
+            font-family: inherit;
+        }
+        .btn-add {
+            background: #d4af37;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+        }
+        .btn-add:hover { background: #fff; }
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .user-table th, .user-table td {
+            padding: 12px;
+            text-align: right;
+            border-bottom: 1px solid #222;
+        }
+        .user-table th { color: #d4af37; }
+        .btn-delete {
+            background: rgba(255, 77, 77, 0.1);
+            color: #ff4d4d;
+            border: 1px solid rgba(255, 77, 77, 0.3);
+            padding: 5px 12px;
+            font-size: 0.85rem;
+        }
+        .btn-delete:hover {
+            background: #ff4d4d;
+            color: #fff;
+        }
+        .alert {
+            background: rgba(46, 204, 113, 0.1);
+            color: #2ecc71;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        .nav-links {
+            display: flex;
+            gap: 15px;
+        }
+        .nav-links a {
+            color: #aaa;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .nav-links a:hover { color: #d4af37; }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <div class="header">
+            <h1><i class="fas fa-users-cog"></i> إدارة المستخدمين</h1>
+            <div class="nav-links">
+                <a href="{{ url_for('dashboard') }}">العودة للرئيسية</a>
+                <a href="{{ url_for('logout') }}">تسجيل خروج</a>
+            </div>
+        </div>
+
+        {% if msg %}
+        <div class="alert">{{ msg }}</div>
+        {% endif %}
+
+        <form method="POST" class="form-group">
+            <input type="hidden" name="action" value="add">
+            <input type="text" name="new_user" placeholder="اسم المستخدم" required>
+            <div style="position: relative;">
+                <input type="password" name="new_pass" id="new-pass-admin" placeholder="كلمة السر" required style="width: 100%; padding-right: 35px;">
+                <i class="fas fa-eye" id="toggle-admin-pass" style="position: absolute; left: 10px; top: 12px; color: #666; cursor: pointer;" onclick="toggleAdminPass()"></i>
+            </div>
+            <input type="date" name="start_date" title="تاريخ البدء" value="2024-01-01">
+            <input type="date" name="end_date" title="تاريخ الانتهاء" value="2025-01-01">
+            <input type="number" name="amount" placeholder="مبلغ الاشتراك" value="0" style="width: 100%;">
+            <select name="role" style="background: #000; color: #fff; border: 1px solid #333; border-radius: 8px; padding: 10px; font-family: inherit;">
+                <option value="user">مستخدم عادي</option>
+                <option value="admin">مدير (Admin)</option>
+            </select>
+            <button type="submit" class="btn-add">إضافة مستخدم</button>
+        </form>
+
+        <table class="user-table">
+            <thead>
+                <tr>
+                    <th>المستخدم</th>
+                    <th>النوع</th>
+                    <th>المبلغ</th>
+                    <th>كلمة السر</th>
+                    <th>من تاريخ</th>
+                    <th>إلى تاريخ</th>
+                    <th>إجراء</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for uname, data in users.items() %}
+                <tr>
+                    <td style="font-weight: bold; color: {{ '#d4af37' if data.role == 'admin' else '#fff' }};">{{ uname }}</td>
+                    <td>{{ 'مدير' if data.role == 'admin' else 'عادي' }}</td>
+                    <td style="color: #2ecc71; font-weight: bold;">${{ data.amount or 0 }}</td>
+                    <td>
+                        <span id="pass-{{ loop.index }}" style="display:none;">{{ data.password }}</span>
+                        <span id="stars-{{ loop.index }}">●●●●●●</span>
+                        <i class="fas fa-eye" style="margin-right: 8px; cursor: pointer; color: #666; font-size: 0.8rem;" 
+                           onclick="toggleTablePass('pass-{{ loop.index }}', 'stars-{{ loop.index }}', this)"></i>
+                    </td>
+                    <td>{{ data.start_date }}</td>
+                    <td>{{ data.end_date }}</td>
+                    <td>
+                        <button class="btn-add" style="padding: 5px 10px; font-size: 0.8rem; background: #2ecc71; margin-left: 5px;" 
+                                onclick="openEditModal('{{ uname }}', '{{ data.password }}', '{{ data.start_date }}', '{{ data.end_date }}', '{{ data.role }}', '{{ data.amount or 0 }}')">تعديل</button>
+                        
+                        {% if uname != session.get('username') %}
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="target_user" value="{{ uname }}">
+                            <button type="submit" class="btn-delete">حذف</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- System Logs Section -->
+        <div style="margin-top: 40px; border-top: 2px solid #222; padding-top: 20px;">
+            <h2 style="color: #d4af37; margin-bottom: 20px;"><i class="fas fa-history"></i> سجل تتبع النظام (Activity Log)</h2>
+            <div style="max-height: 300px; overflow-y: auto; background: #050505; border-radius: 10px; padding: 15px; border: 1px solid #222;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                    <thead>
+                        <tr style="color: #666; border-bottom: 1px solid #222;">
+                            <th style="padding: 8px; text-align: right;">الوقت</th>
+                            <th style="padding: 8px; text-align: right;">المستخدم</th>
+                            <th style="padding: 8px; text-align: right;">الإجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr style="border-bottom: 1px solid #111;">
+                            <td style="padding: 8px; color: #aaa;">{{ log.time }}</td>
+                            <td style="padding: 8px; color: #d4af37;">{{ log.user }}</td>
+                            <td style="padding: 8px;">
+                                {{ log.action }}
+                                {% if log.extra_data and log.extra_data.restore_data %}
+                                <form method="POST" style="display:inline; margin-right: 10px;">
+                                    <input type="hidden" name="action" value="restore">
+                                    <input type="hidden" name="log_id" value="{{ log.id }}">
+                                    <button type="submit" style="background: rgba(46, 204, 113, 0.2); color: #2ecc71; border: 1px solid #2ecc71; padding: 2px 8px; font-size: 0.75rem; border-radius: 4px; cursor: pointer;">استعادة</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="edit-modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; justify-content: center; align-items: center;">
+        <div class="admin-container" style="max-width: 500px; background: #111;">
+            <h2 style="color: #d4af37; margin-bottom: 20px;"><i class="fas fa-user-edit"></i> تعديل بيانات المستخدم</h2>
+            <form method="POST" id="edit-form" style="display: flex; flex-direction: column; gap: 15px;">
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" name="target_user" id="edit-username">
+                <div style="color: #aaa; font-size: 0.9rem;">تعديل المستخدم: <span id="display-username" style="color: #fff; font-weight: bold;"></span></div>
+                
+                <label style="font-size: 0.85rem; color: #d4af37;">كلمة السر الجديدة:</label>
+                <div style="position: relative;">
+                    <input type="password" name="new_pass" id="edit-pass" required style="width: 100%; padding-right: 35px;">
+                    <i class="fas fa-eye" id="toggle-edit-pass" style="position: absolute; left: 10px; top: 12px; color: #666; cursor: pointer;" onclick="togglePassVisibility('edit-pass', 'toggle-edit-pass')"></i>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <label style="font-size: 0.85rem; color: #d4af37;">من تاريخ:</label>
+                        <input type="date" name="start_date" id="edit-start" style="width: 100%;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.85rem; color: #d4af37;">إلى تاريخ:</label>
+                        <input type="date" name="end_date" id="edit-end" style="width: 100%;">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <label style="font-size: 0.85rem; color: #d4af37;">المبلغ:</label>
+                        <input type="number" name="amount" id="edit-amount" style="width: 100%;">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.85rem; color: #d4af37;">نوع الحساب:</label>
+                        <select name="role" id="edit-role" style="background: #000; color: #fff; border: 1px solid #333; border-radius: 8px; padding: 10px; width: 100%;">
+                            <option value="user">مستخدم عادي</option>
+                            <option value="admin">مدير (Admin)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button type="submit" class="btn-add" style="flex: 1;">حفظ التغييرات</button>
+                    <button type="button" onclick="closeEditModal()" style="flex: 1; background: #333; color: #fff; border: none; padding: 10px; border-radius: 8px;">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function togglePassVisibility(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+
+        function toggleAdminPass() {
+            togglePassVisibility('new-pass-admin', 'toggle-admin-pass');
+        }
+
+        function toggleTablePass(passId, starsId, icon) {
+            const passSpan = document.getElementById(passId);
+            const starsSpan = document.getElementById(starsId);
+            if (passSpan.style.display === 'none') {
+                passSpan.style.display = 'inline';
+                starsSpan.style.display = 'none';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                passSpan.style.display = 'none';
+                starsSpan.style.display = 'inline';
+                icon.className = 'fas fa-eye';
+            }
+        }
+
+        function openEditModal(username, password, start, end, role, amount) {
+            document.getElementById('edit-username').value = username;
+            document.getElementById('display-username').innerText = username;
+            document.getElementById('edit-pass').value = password;
+            document.getElementById('edit-start').value = start;
+            document.getElementById('edit-end').value = end;
+            document.getElementById('edit-role').value = role;
+            document.getElementById('edit-amount').value = amount;
+            document.getElementById('edit-modal').style.display = 'flex';
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

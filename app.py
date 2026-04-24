@@ -2,9 +2,10 @@ from flask import Flask, render_template, request, redirect, url_for, session
 import os
 import secrets
 import sys
+from dotenv import load_dotenv
 
-# Add parent directory to path to import StockEngine and AIAnalyzer
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Load environment variables from .env file
+load_dotenv(override=True)
 
 from stock_engine import StockEngine
 from ai_analyzer import AIAnalyzer
@@ -24,6 +25,46 @@ PASSWORD = "Az@123"
 import os
 DEFAULT_API_KEY = os.environ.get("GROQ_API_KEY", "")
 
+# Database utility functions
+def load_users():
+    try:
+        with open('users.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except:
+        return {"admin": {"password": "Az@123", "start_date": "2024-01-01", "end_date": "2099-12-31"}}
+
+def save_users(users):
+    with open('users.json', 'w', encoding='utf-8') as f:
+        json.dump(users, f, indent=2)
+
+def log_activity(username, action, extra_data=None):
+    from datetime import datetime
+    try:
+        with open('activity_log.json', 'r', encoding='utf-8') as f:
+            logs = json.load(f)
+    except:
+        logs = []
+    
+    logs.append({
+        "time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        "user": username,
+        "action": action,
+        "extra_data": extra_data
+    })
+    
+    # Keep only last 100 logs
+    logs = logs[-100:]
+    
+    with open('activity_log.json', 'w', encoding='utf-8') as f:
+        json.dump(logs, f, indent=2)
+
+def load_logs():
+    try:
+        with open('activity_log.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except:
+        return []
+
 @app.route('/')
 def index():
     if 'username' in session:
@@ -34,12 +75,113 @@ def index():
 def login():
     error = None
     if request.method == 'POST':
-        if request.form['username'] == USERNAME and request.form['password'] == PASSWORD:
-            session['username'] = request.form['username']
-            return redirect(url_for('dashboard'))
+        username = request.form['username']
+        password = request.form['password']
+        users = load_users()
+        
+        if username in users:
+            user_data = users[username]
+            if user_data['password'] == password:
+                from datetime import datetime
+                today = datetime.now().strftime('%Y-%m-%d')
+                
+                # Check if subscription is valid
+                if user_data['start_date'] <= today <= user_data['end_date']:
+                    session['username'] = username
+                    session['role'] = user_data.get('role', 'user')
+                    return redirect(url_for('dashboard'))
+                else:
+                    error = 'عذراً، انتهت صلاحية اشتراكك أو لم تبدأ بعد. يرجى التواصل مع الإدارة.'
+            else:
+                error = 'كلمة السر غير صحيحة.'
         else:
-            error = 'بيانات الدخول غير صحيحة. يرجى المحاولة مرة أخرى.'
+            error = 'اسم المستخدم غير موجود.'
+            
     return render_template('login.html', error=error)
+
+@app.route('/admin', methods=['GET', 'POST'])
+def admin_panel():
+    if session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    
+    users = load_users()
+    logs = load_logs()
+    msg = None
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'add' or action == 'edit':
+            target_user = request.form.get('new_user') if action == 'add' else request.form.get('target_user')
+            new_pass = request.form.get('new_pass')
+            start_date = request.form.get('start_date')
+            end_date = request.form.get('end_date')
+            role = request.form.get('role', 'user')
+            amount = request.form.get('amount', '0')
+            
+            if target_user and new_pass:
+                users[target_user] = {
+                    "password": new_pass,
+                    "start_date": start_date or "2024-01-01",
+                    "end_date": end_date or "2025-01-01",
+                    "role": role,
+                    "amount": amount
+                }
+                save_users(users)
+                log_activity(session.get('username'), f"{'إضافة' if action == 'add' else 'تعديل'} المستخدم: {target_user} (المبلغ: {amount})")
+                msg = f"تم {'إضافة' if action == 'add' else 'تعديل'} المستخدم {target_user} بنجاح."
+        
+        elif action == 'delete':
+            target_user = request.form.get('target_user')
+            if target_user and target_user != session.get('username'):
+                user_backup = users[target_user]
+                del users[target_user]
+                save_users(users)
+                log_activity(session.get('username'), f"حذف المستخدم: {target_user}", {"restore_data": user_backup, "restore_username": target_user})
+                msg = f"تم حذف المستخدم {target_user}."
+        
+        elif action == 'restore':
+            log_id = int(request.form.get('log_id', -1))
+            full_logs = load_logs() # Load in correct order (oldest first for index)
+            if 0 <= log_id < len(full_logs):
+                log_entry = full_logs[log_id]
+                if log_entry.get('extra_data') and 'restore_data' in log_entry['extra_data']:
+                    rest_user = log_entry['extra_data']['restore_username']
+                    users[rest_user] = log_entry['extra_data']['restore_data']
+                    save_users(users)
+                    log_activity(session.get('username'), f"استعادة المستخدم: {rest_user}")
+                    msg = f"تم استعادة المستخدم {rest_user} بنجاح."
+
+    # For display, we need logs in reverse but with their original IDs
+    display_logs = []
+    full_logs_raw = load_logs()
+    for idx, log in enumerate(full_logs_raw):
+        log_copy = log.copy()
+        log_copy['id'] = idx
+        display_logs.append(log_copy)
+
+    return render_template('admin.html', users=users, logs=display_logs[::-1], msg=msg)
+
+@app.route('/api/change_password', methods=['POST'])
+def change_password():
+    if 'username' not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    data = request.json
+    new_password = data.get('new_password')
+    username = session['username']
+    
+    if not new_password or len(new_password) < 3:
+        return {"error": "كلمة السر قصيرة جداً."}, 400
+        
+    users = load_users()
+    if username in users:
+        users[username]['password'] = new_password
+        save_users(users)
+        log_activity(username, "تغيير كلمة السر الخاصة")
+        return {"status": "success", "message": "تم تغيير كلمة السر بنجاح."}
+    
+    return {"error": "فشل تغيير كلمة السر."}, 400
 
 @app.route('/dashboard')
 def dashboard():
@@ -267,6 +409,35 @@ def chat():
             elif latest['RSI'] < 30:
                 rsi_warn = f"<br><span style='color: #2ecc71; font-size: 0.9em;'>✅ تشبع بيعي - قد يرتد صعوداً</span>"
 
+            # Calculate missing fields for Intraday
+            is_halal, shariah_reason = engine.screen_shariah_compliance()
+            
+            # Expected Profit and R/R calculation
+            expected_profit_pct = "0.00%"
+            risk_reward_ratio = "1:2" # Default
+            if levels and 'Entry' in levels and 'TP' in levels and 'SL' in levels:
+                entry = levels['Entry']
+                tp = levels['TP']
+                sl = levels['SL']
+                if entry > 0:
+                    profit_pct = abs((tp - entry) / entry) * 100
+                    expected_profit_pct = f"{profit_pct:.2f}%"
+                    
+                    risk = abs(entry - sl)
+                    reward = abs(tp - entry)
+                    if risk > 0:
+                        risk_reward_ratio = f"1:{reward/risk:.1f}"
+
+            # Hold time rule for intraday
+            hold_time_rules = {
+                "15m": "15 إلى 45 دقيقة",
+                "30m": "30 إلى 90 دقيقة",
+                "1h": "ساعة إلى 3 ساعات",
+                "1d": "يوم إلى 5 أيام",
+                "1mo": "شهر إلى 6 أشهر"
+            }
+            max_hold = hold_time_rules.get(timeframe, "حسب الاستراتيجية")
+
             import datetime
             gen_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             rec_class = 'buy' if 'شراء' in rec_signal else 'sell' if 'بيع' in rec_signal else 'hold'
@@ -280,39 +451,60 @@ def chat():
                 </thead>
                 <tbody>
                     <tr style="border-bottom: 1px solid #444;">
-                        <td style="padding: 10px; font-weight: bold; color: #d4af37; width: 40%;">السعر الحالي</td>
+                        <td style="padding: 10px; font-weight: bold; width: 40%; color: #d4af37;">الشركة / السهم</td>
+                        <td style="padding: 10px;">{engine.info.get('longName', ticker)}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #444;">
+                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">السعر الحالي</td>
                         <td style="padding: 10px;">${latest['Close']:.2f}</td>
                     </tr>
                     <tr style="border-bottom: 1px solid #444;">
-                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">الإشارة / القرار</td>
+                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">إشارة التداول (بيع/شراء)</td>
                         <td style="padding: 10px; font-weight: bold;" class="recommendation-box {rec_class}">{rec_signal}</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #444;">
-                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">المؤشرات الفنية</td>
-                        <td style="padding: 10px;">
-                            RSI: {latest['RSI']:.2f} {rsi_warn}<br>
-                            MACD: {latest['MACD']:.3f}
-                        </td>
                     </tr>
                     <tr style="border-bottom: 1px solid #444;">
                         <td style="padding: 10px; font-weight: bold; color: #d4af37;">أمر التنفيذ (سعر الدخول)</td>
                         <td style="padding: 10px; color: #3498db; font-weight: bold;">{entry_val}</td>
                     </tr>
                     <tr style="border-bottom: 1px solid #444;">
-                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">منطقة الانعكاس (مقاومة)</td>
-                        <td style="padding: 10px; color: #e74c3c; font-weight: bold;">{res_val}</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #444;">
-                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">منطقة الارتداد (دعم)</td>
-                        <td style="padding: 10px; color: #3498db; font-weight: bold;">{sup_val}</td>
+                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">سعر الخروج (الهدف المقترح)</td>
+                        <td style="padding: 10px; color: #2ecc71; font-weight: bold;">{tp_val}</td>
                     </tr>
                     <tr style="border-bottom: 1px solid #444;">
                         <td style="padding: 10px; font-weight: bold; color: #d4af37;">وقف الخسارة (SL)</td>
                         <td style="padding: 10px; color: #ff4d4d; font-weight: bold;">{sl_val}</td>
                     </tr>
                     <tr style="border-bottom: 1px solid #444;">
-                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">الهدف المقترح (TP)</td>
-                        <td style="padding: 10px; color: #2ecc71; font-weight: bold;">{tp_val}</td>
+                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">الربح المتوقع (%)</td>
+                        <td style="padding: 10px; font-weight: bold; color: #2ecc71;">{expected_profit_pct}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #444;">
+                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">منطقة الارتداد (دعم)</td>
+                        <td style="padding: 10px; color: #3498db; font-weight: bold;">{sup_val}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #444;">
+                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">منطقة الانعكاس (مقاومة)</td>
+                        <td style="padding: 10px; color: #e74c3c; font-weight: bold;">{res_val}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #444;">
+                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">نسبة المخاطرة للمكافأة (R/R)</td>
+                        <td style="padding: 10px;">{risk_reward_ratio}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #444;">
+                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">وقت الدخول المقترح</td>
+                        <td style="padding: 10px;">عند التأكيد أو السعر المذكور</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #444;">
+                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">وقت الخروج المقترح (أقصى مدة)</td>
+                        <td style="padding: 10px;">{max_hold}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #444;">
+                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">المقترحات الاستراتيجية</td>
+                        <td style="padding: 10px;">التزم بوقف الخسارة وجني الأرباح عند الأهداف المحددة.</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #444;">
+                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">الأساسيات ونسبة التطهير</td>
+                        <td style="padding: 10px; color: #f39c12; font-weight: bold;">{shariah_reason}</td>
                     </tr>
                     <tr>
                         <td style="padding: 10px; font-weight: bold; color: #d4af37;">وقت إصدار التحليل</td>
@@ -385,17 +577,17 @@ def chat():
         elif is_scanner_request:
             # If no ticker was in session, engine might not exist
             scan_engine = StockEngine("SPY") if not ticker else engine 
-            opportunities = scan_engine.scan_market()
+            opportunities = scan_engine.scan_market(period=period, interval=timeframe)
             
             if not opportunities:
-                response = "🔍 قمت بفحص أهم الأسهم ولم أجد فرص **شراء** واضحة حالياً بناءً على المؤشرات الفنية. السوق قد يكون في حالة تذبذب أو هبوط."
+                response = f"🔍 قمت بفحص أهم الأسهم على فريم ({tf_title}) ولم أجد فرص **شراء** واضحة حالياً بناءً على المؤشرات الفنية."
             else:
                 api_key = session.get('groq_api_key') or DEFAULT_API_KEY
                 analyzer = AIAnalyzer(api_key=api_key) 
-                ai_opportunities_insight = analyzer.get_opportunities_insight(opportunities)
+                ai_opportunities_insight = analyzer.get_opportunities_insight(opportunities, tf_title=tf_title, timeframe_val=timeframe)
                 
                 if ai_opportunities_insight:
-                    response = f"🚀 **تحليل الذكاء الاصطناعي لأفضل الفرص المتاحة:**\n\n{ai_opportunities_insight}"
+                    response = f"🚀 **تحليل الذكاء الاصطناعي للفرص المتاحة ({tf_title}):**\n\n{ai_opportunities_insight}"
                 else:
                     response = "🚀 **الفرص المتاحة حالياً (إشارة شراء فنية):**\n\n"
                     for opp in opportunities:

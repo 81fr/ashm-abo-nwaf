@@ -11,7 +11,7 @@ UNIFIED_TABLE_HTML = """
     </thead>
     <tbody>
         <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; width: 40%; color: #d4af37;">الشركة / القطاع</td>
+            <td style="padding: 10px; font-weight: bold; width: 40%; color: #d4af37;">الشركة / السهم</td>
             <td style="padding: 10px;">(Company & Sector)</td>
         </tr>
         <tr style="border-bottom: 1px solid #444;">
@@ -19,52 +19,56 @@ UNIFIED_TABLE_HTML = """
             <td style="padding: 10px;">{current_price}</td>
         </tr>
         <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">الإشارة / القرار</td>
-            <td style="padding: 10px; font-weight: bold; color: #fff;">(Buy/Sell Stock, or CALL/PUT Options)</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">القوة</td>
-            <td style="padding: 10px;">(Signal Strength)</td>
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">إشارة التداول (بيع/شراء)</td>
+            <td style="padding: 10px; font-weight: bold; color: #fff;">(Buy/Sell Signal)</td>
         </tr>
         <tr style="border-bottom: 1px solid #444;">
             <td style="padding: 10px; font-weight: bold; color: #d4af37;">أمر التنفيذ (سعر الدخول)</td>
-            <td style="padding: 10px;">(Entry/Limit Price)</td>
+            <td style="padding: 10px; color: #3498db; font-weight: bold;">(Entry/Limit Price)</td>
         </tr>
         <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">السترايك (Strike)</td>
-            <td style="padding: 10px;">(Option Strike or 'غير مطبق')</td>
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">سعر الخروج (الهدف المقترح)</td>
+            <td style="padding: 10px; color: #2ecc71; font-weight: bold;">(Take Profit - TP Price)</td>
         </tr>
         <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">الأساسيات والسبب الفني</td>
-            <td style="padding: 10px;">(Reasoning summary)</td>
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">وقف الخسارة (SL)</td>
+            <td style="padding: 10px; color: #ff4d4d; font-weight: bold;">(Stop Loss Price)</td>
         </tr>
         <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">نسبة التطهير / الشرعية</td>
-            <td style="padding: 10px; color: #f39c12; font-weight: bold;">(Purification/Shariah Status)</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">منطقة الانعكاس (مقاومة)</td>
-            <td style="padding: 10px; color: #e74c3c; font-weight: bold;">{resistance}</td>
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">الربح المتوقع (%)</td>
+            <td style="padding: 10px; font-weight: bold;">(Expected Profit %)</td>
         </tr>
         <tr style="border-bottom: 1px solid #444;">
             <td style="padding: 10px; font-weight: bold; color: #d4af37;">منطقة الارتداد (دعم)</td>
             <td style="padding: 10px; color: #3498db; font-weight: bold;">{support}</td>
         </tr>
         <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">وقف الخسارة (SL)</td>
-            <td style="padding: 10px; color: #ff4d4d; font-weight: bold;">(SL Price)</td>
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">منطقة الانعكاس (مقاومة)</td>
+            <td style="padding: 10px; color: #e74c3c; font-weight: bold;">{resistance}</td>
         </tr>
         <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">الهدف المقترح (TP)</td>
-            <td style="padding: 10px; color: #2ecc71; font-weight: bold;">(TP Price)</td>
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">نسبة المخاطرة للمكافأة (R/R)</td>
+            <td style="padding: 10px;">(Risk % / Reward-to-Risk)</td>
         </tr>
         <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">نسبة العائد للمخاطرة (R/R)</td>
-            <td style="padding: 10px;">(R/R Ratio)</td>
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">وقت الدخول المقترح</td>
+            <td style="padding: 10px;">(Suggested Entry Time)</td>
         </tr>
         <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">وقت أقصى للاحتفاظ / المخاطر</td>
-            <td style="padding: 10px;">(Max Hold Time & Risks)</td>
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">وقت الخروج المقترح (أقصى مدة)</td>
+            <td style="padding: 10px;">(Suggested Exit Time / Max Hold)</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #444;">
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">السترايك (لعقود الأوبشن)</td>
+            <td style="padding: 10px;">(Option Strike or 'غير مطبق للأسهم')</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #444;">
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">المقترحات الاستراتيجية</td>
+            <td style="padding: 10px;">(Strategic Suggestions / Best Practices)</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #444;">
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">الأساسيات ونسبة التطهير</td>
+            <td style="padding: 10px; color: #f39c12;">(Fundamentals & Purification)</td>
         </tr>
         <tr>
             <td style="padding: 10px; font-weight: bold; color: #d4af37;">وقت إصدار التحليل</td>
@@ -121,10 +125,12 @@ class AIAnalyzer:
         - MACD: {macd:.2f}
         
         Please provide a detailed investment recommendation **strictly in Arabic** tailored to this timeframe.
-        CRITICAL: For the 'Max Hold Time / Risks' (وقت أقصى للاحتفاظ / المخاطر) field in the table, it {hold_instruction}. Do not invent or suggest any other duration.
+        CRITICAL: For the 'Suggested Exit Time / Max Hold' (وقت الخروج المقترح (أقصى مدة)) field in the table, it {hold_instruction}. You MUST NOT suggest a longer holding period than this under any circumstances! Do not invent any other duration.
         
+        You MUST calculate and provide EXPLICIT numbers/percentages for Expected Profit (الربح المتوقع), Risk Percentage (نسبة المخاطرة), Entry Price, Take Profit, and Stop Loss.
+        Add clear Strategic Suggestions (المقترحات الاستراتيجية) based on best practices.
         You MUST return ONLY the following HTML table format exactly as shown, filled with data in Arabic. Do not add conversational text outside the table.
-        Replace any irrelevant fields (like Strike for spot buying) with 'غير مطبق' (N/A).
+        Replace any irrelevant fields (like Strike for spot buying) with 'غير مطبق للأسهم' (N/A).
         
         {UNIFIED_TABLE_HTML.format(ticker=f"{ticker} ({tf_title})", current_price=f"${current_price:.2f}", support=f"${support:.2f}", resistance=f"${resistance:.2f}", generation_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))}
         """
@@ -143,25 +149,37 @@ class AIAnalyzer:
         except Exception as e:
             return f"خطأ في توليد تحليل الذكاء الاصطناعي: {str(e)}"
 
-    def get_opportunities_insight(self, opportunities_list):
+    def get_opportunities_insight(self, opportunities_list, tf_title="يومي", timeframe_val="1d"):
         """Generates an AI-driven report for a list of market opportunities."""
         if not self.api_key:
              return None
+             
+        # Enforce highly strict max hold times to prevent LLM hallucinating days for a 15-minute chart
+        hold_time_rules = {
+            "15m": "MUST BE '15 إلى 45 دقيقة'",
+            "30m": "MUST BE '30 إلى 90 دقيقة'",
+            "1h": "MUST BE 'ساعة إلى 3 ساعات'",
+            "1d": "MUST BE 'يوم إلى 5 أيام'",
+            "1mo": "MUST BE 'شهر إلى 6 أشهر'"
+        }
+        hold_instruction = hold_time_rules.get(timeframe_val, "MUST BE 'معتمد على استراتيجيتك'")
 
         opps_text = "\n".join([
             f"- {opp['ticker']}: Buy at ${opp['price']:.2f}, Target ${opp['tp']:.2f}, Stop Loss ${opp['sl']:.2f}" 
             for opp in opportunities_list
         ])
 
-        table_template = UNIFIED_TABLE_HTML.replace('{ticker}', '[رمز السهم]').replace('{current_price}', '[السعر]').replace('{support}', '[دعم]').replace('{resistance}', '[مقاومة]').replace('{generation_time}', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        table_template = UNIFIED_TABLE_HTML.replace('{ticker}', f'[رمز السهم] ({tf_title})').replace('{current_price}', '[السعر]').replace('{support}', '[دعم]').replace('{resistance}', '[مقاومة]').replace('{generation_time}', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
         prompt = f"""
-        I have scanned the market and found the following Technical Buy opportunities based on indicator crossovers and ATR levels:
+        I have scanned the market on the {tf_title} timeframe and found the following Technical Buy opportunities:
         {opps_text}
 
         Please act as an expert financial advisor. Provide a concise, highly professional summary in **Arabic** for these opportunities. 
+        CRITICAL: For the 'Suggested Exit Time / Max Hold' (وقت الخروج المقترح (أقصى مدة)) field in the table for EVERY stock, it {hold_instruction}. You MUST NOT suggest a longer holding period than this under any circumstances! Do not invent any other duration.
+        
         You MUST return ONLY the following HTML table format exactly as shown for EACH stock. Create a separate identical table for each stock and separate them with a `<br>` tag. Do not add conversational text.
-        Fill irrelevant fields with 'غير مطبق'.
+        Fill irrelevant fields with 'غير مطبق للأسهم'.
 
         {table_template}
         """
@@ -206,8 +224,10 @@ class AIAnalyzer:
         - Put/Call Ratio (Open Interest): {options_data['putCallRatioOI']:.2f}
 
         Please act as an expert options trader. Provide a concise analysis strictly in **Arabic**.
+        You MUST provide Expected Profit (الربح المتوقع), Risk Percentage (نسبة المخاطرة), Entry Price, Take Profit, Stop Loss, Entry Time, Exit Time, and Strategic Suggestions (المقترحات الاستراتيجية).
+        CRITICAL: Keep your expected hold times and exit times realistic for the {tf_title} timeframe.
         You MUST return ONLY the following HTML table format exactly as shown, filled with data in Arabic. Do not add conversational text outside the table.
-        Replace irrelevant fields (like target or SL if you only do general sentiment analysis) with 'يعتمد على نظرة المتداول'.
+        Replace irrelevant fields with 'يعتمد على نظرة المتداول'.
 
         {UNIFIED_TABLE_HTML.format(ticker=f"{ticker} ({tf_title})", current_price=f"${current_price:.2f}", support=support_val, resistance=res_val, generation_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))}
         """
@@ -262,11 +282,12 @@ class AIAnalyzer:
         Call Volume: {call_vol}
         Put Volume: {put_vol}
         
-        CRITICAL: For the 'Max Hold Time / Risks' (وقت أقصى للاحتفاظ / المخاطر) field in the table, it {hold_instruction}. You are severely penalized if you output days/weeks for an intraday interval!
+        CRITICAL: For the 'Suggested Exit Time / Max Hold' (وقت الخروج المقترح (أقصى مدة)) field in the table, it {hold_instruction}. You are severely penalized if you output days/weeks for an intraday interval!
         
         Based on the current momentum (RSI/MACD), the key zones, and options flow (Call/Put volume and P/C ratio), decide whether to recommend a CALL or a PUT option.
-        Then, estimate a reasonable Strike Price near the money, a Limit Order price, a Stop Loss (SL), and a Take Profit (TP).
-        Also explicitly state the calculated Support and Resistance zones.
+        Then, estimate a reasonable Strike Price near the money, a Limit Order price (سعر الدخول), a Stop Loss (SL), and a Take Profit (TP).
+        Explicitly calculate the Expected Profit (الربح المتوقع) and Risk Percentage (نسبة المخاطرة).
+        Provide clear Strategic Suggestions (المقترحات الاستراتيجية) and explicit Entry/Exit Times.
         Estimate a Purification Percentage (نسبة التطهير) or indicate 'الرجوع للقوائم الشرعية'.
         
         You MUST return ONLY the following HTML table format exactly as shown, filled with data in Arabic. Do not add conversational text outside this table. Use the exact inline CSS provided.
