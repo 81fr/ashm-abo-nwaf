@@ -179,6 +179,91 @@
             box-shadow: 0 5px 15px rgba(255, 77, 77, 0.3);
         }
 
+        /* --- Custom Modals --- */
+        .custom-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            width: 450px;
+            max-width: 90%;
+            background: #111;
+            padding: 2rem;
+            border-radius: 20px;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            animation: modalFadeIn 0.3s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .btn-secondary {
+            background: none;
+            border: 1px solid #333;
+            color: #aaa;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            border-color: #555;
+        }
+
+        /* Ticket Styles */
+        .ticket-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .ticket-card:hover {
+            background: rgba(212, 175, 55, 0.05);
+            border-color: rgba(212, 175, 55, 0.2);
+        }
+
+        .status-badge-ticket {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .status-open { background: rgba(46, 204, 113, 0.1); color: #2ecc71; }
+        .status-closed { background: rgba(149, 165, 166, 0.1); color: #95a5a6; }
+
+        .reply-item {
+            background: rgba(255,255,255,0.02);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
         /* --- Main Content --- */
         .main-content {
             margin-{{ 'right' if lang == 'ar' else 'left' }}: 280px;
@@ -624,7 +709,19 @@
                         <span>{{ t.admin_panel }}</span>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="javascript:void(0)" onclick="openBroadcastModal()" class="nav-link">
+                        <i class="fas fa-bullhorn"></i>
+                        <span>{{ t.broadcast }}</span>
+                    </a>
+                </li>
                 {% endif %}
+                <li class="nav-item">
+                    <a href="javascript:void(0)" onclick="openSupportModal()" class="nav-link">
+                        <i class="fas fa-headset"></i>
+                        <span>{{ t.support }}</span>
+                    </a>
+                </li>
                 <li class="nav-item" style="margin-top: 10px;">
                     {% if lang == 'ar' %}
                     <a href="{{ url_for('set_lang', lang='en') }}" class="nav-link">
@@ -657,17 +754,73 @@
         </aside>
 
         <!-- Change Password Modal -->
-        <div id="password-modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;">
-            <div class="panel-card" style="width: 350px; background: #151515;">
-                <h3 style="margin-bottom: 20px; color: var(--primary-gold);"><i class="fas fa-key"></i> تغيير كلمة السر</h3>
+        <div id="password-modal" class="custom-modal">
+            <div class="panel-card modal-content">
+                <h3 style="margin-bottom: 20px; color: var(--primary-gold);"><i class="fas fa-key"></i> {{ t.change_password }}</h3>
                 <div class="api-input-group">
                     <div style="position: relative;">
-                        <input type="password" id="new-password-input" placeholder="كلمة السر الجديدة..." style="width: 100%; padding-right: 40px;">
+                        <input type="password" id="new-password-input" placeholder="{{ t.new_password }}..." style="width: 100%; padding-right: 40px;">
                         <i class="fas fa-eye" id="toggle-new-pass" onclick="togglePassVisibility('new-password-input', 'toggle-new-pass')" style="position: absolute; left: 10px; top: 12px; color: #666; cursor: pointer;"></i>
                     </div>
-                    <button onclick="submitChangePassword()" class="btn-primary">حفظ التغيير</button>
-                    <button onclick="closeChangePassword()" style="background: none; border: 1px solid #333; color: #aaa; padding: 10px; border-radius: 8px; cursor: pointer;">إلغاء</button>
+                    <button onclick="submitChangePassword()" class="btn-primary">{{ t.save_change }}</button>
+                    <button onclick="closeChangePassword()" class="btn-secondary">{{ t.cancel }}</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Broadcast Modal (Admin) -->
+        <div id="broadcast-modal" class="custom-modal">
+            <div class="panel-card modal-content">
+                <h3 style="margin-bottom: 20px; color: var(--primary-gold);"><i class="fas fa-bullhorn"></i> {{ t.new_broadcast }}</h3>
+                <form id="broadcast-form" onsubmit="submitBroadcast(event)" enctype="multipart/form-data">
+                    <div class="api-input-group">
+                        <input type="text" name="subject" placeholder="{{ t.subject }}" required style="width: 100%;">
+                        <textarea name="message" placeholder="{{ t.message }}" required style="width: 100%; background: #000; border: 1px solid #333; border-radius: 8px; color: #fff; padding: 10px; min-height: 100px; font-family: inherit;"></textarea>
+                        <div style="margin-top: 10px;">
+                            <label style="font-size: 0.85rem; color: #aaa;">{{ t.attachment }}:</label>
+                            <input type="file" name="file" style="margin-top: 5px;">
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button type="submit" class="btn-primary">{{ t.submit }}</button>
+                            <button type="button" onclick="closeBroadcastModal()" class="btn-secondary">{{ t.cancel }}</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Support Modal -->
+        <div id="support-modal" class="custom-modal">
+            <div class="panel-card modal-content" style="max-width: 600px; width: 90%;">
+                <h3 style="margin-bottom: 20px; color: var(--primary-gold);"><i class="fas fa-headset"></i> {{ t.technical_support }}</h3>
+                
+                <div id="ticket-list-view">
+                    <button onclick="showNewTicketForm()" class="btn-primary" style="margin-bottom: 20px;"><i class="fas fa-plus"></i> {{ t.new_ticket }}</button>
+                    <div id="tickets-container" style="max-height: 400px; overflow-y: auto;">
+                        <!-- Tickets list here -->
+                    </div>
+                </div>
+
+                <div id="new-ticket-view" style="display: none;">
+                    <form onsubmit="submitTicket(event)">
+                        <input type="text" name="subject" placeholder="{{ t.subject }}" required style="width: 100%; margin-bottom: 10px;">
+                        <select name="type" style="width: 100%; background: #000; color: #fff; border: 1px solid #333; border-radius: 8px; padding: 10px; margin-bottom: 10px;">
+                            <option value="issue">{{ t.issue }}</option>
+                            <option value="suggestion">{{ t.suggestion }}</option>
+                        </select>
+                        <textarea name="description" placeholder="{{ t.description }}" required style="width: 100%; background: #000; border: 1px solid #333; border-radius: 8px; color: #fff; padding: 10px; min-height: 100px;"></textarea>
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button type="submit" class="btn-primary">{{ t.submit }}</button>
+                            <button type="button" onclick="showTicketList()" class="btn-secondary">{{ t.cancel }}</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="ticket-detail-view" style="display: none;">
+                    <!-- Ticket details and replies -->
+                </div>
+
+                <button onclick="closeSupportModal()" class="btn-secondary" style="margin-top: 20px; width: 100%;">{{ t.cancel }}</button>
             </div>
         </div>
 
@@ -675,7 +828,12 @@
         <main class="main-content">
 
             <header class="top-bar">
-                <h1 class="page-title">{{ t.dashboard_title }}</h1>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <h1 class="page-title">{{ t.dashboard_title }}</h1>
+                    <div id="broadcast-notification" style="display: none; background: rgba(212, 175, 55, 0.1); border: 1px solid var(--primary-gold); padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; color: var(--primary-gold); cursor: pointer;" onclick="viewAnnouncements()">
+                        <i class="fas fa-bullhorn"></i> <span id="announcement-count">1</span> {{ t.broadcast_title }}
+                    </div>
+                </div>
                 <div class="status-badge">
                     <span class="status-dot"></span>
                     <span>{{ t.system_active }}</span>
@@ -909,6 +1067,222 @@
                 alert("حدث خطأ أثناء تغيير كلمة السر.");
             }
         }
+
+        /* --- Broadcast Functions --- */
+        function openBroadcastModal() { document.getElementById('broadcast-modal').style.display = 'flex'; }
+        function closeBroadcastModal() { document.getElementById('broadcast-modal').style.display = 'none'; }
+
+        async function submitBroadcast(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            try {
+                const response = await fetch('/api/broadcast', { method: 'POST', body: formData });
+                const data = await response.json();
+                if (data.success) {
+                    alert("تم إرسال التعميم بنجاح.");
+                    closeBroadcastModal();
+                    event.target.reset();
+                    checkAnnouncements();
+                }
+            } catch (error) { alert("خطأ في الإرسال."); }
+        }
+
+        async function checkAnnouncements() {
+            try {
+                const response = await fetch('/api/broadcast');
+                const data = await response.json();
+                const ann = data.announcements || [];
+                if (ann.length > 0) {
+                    const latest = ann[ann.length - 1];
+                    document.getElementById('broadcast-notification').style.display = 'flex';
+                    document.getElementById('announcement-count').innerText = ann.length;
+                }
+            } catch (e) {}
+        }
+
+        function viewAnnouncements() {
+            // Simplified: Just show the latest in an alert or a more complex modal if needed
+            // For now, let's open the Support Modal area but for announcements
+            fetch('/api/broadcast').then(r => r.json()).then(data => {
+                const ann = data.announcements || [];
+                if (ann.length === 0) return;
+                const latest = ann[ann.length - 1];
+                let fileHtml = latest.file_url ? `<br><a href="${latest.file_url}" target="_blank" style="color: var(--primary-gold);"><i class="fas fa-paperclip"></i> تحميل المرفق</a>` : "";
+                
+                // We'll reuse the chat to show the announcement as a bot message
+                addMessage(`📢 <b>${latest.subject}</b><br>${latest.message}${fileHtml}`, 'bot');
+                document.getElementById('broadcast-notification').style.display = 'none';
+            });
+        }
+
+        /* --- Support Ticket Functions --- */
+        let allTickets = {};
+        function openSupportModal() {
+            document.getElementById('support-modal').style.display = 'flex';
+            loadTickets();
+        }
+        function closeSupportModal() { document.getElementById('support-modal').style.display = 'none'; }
+        function showNewTicketForm() {
+            document.getElementById('ticket-list-view').style.display = 'none';
+            document.getElementById('new-ticket-view').style.display = 'block';
+            document.getElementById('ticket-detail-view').style.display = 'none';
+        }
+        function showTicketList() {
+            document.getElementById('ticket-list-view').style.display = 'block';
+            document.getElementById('new-ticket-view').style.display = 'none';
+            document.getElementById('ticket-detail-view').style.display = 'none';
+            loadTickets();
+        }
+
+        async function submitTicket(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            try {
+                const response = await fetch('/api/support', { method: 'POST', body: formData });
+                const data = await response.json();
+                if (data.success) {
+                    alert("تم فتح التذكرة بنجاح. رقم التذكرة: " + data.ticket_id);
+                    event.target.reset();
+                    showTicketList();
+                }
+            } catch (error) { alert("خطأ في فتح التذكرة."); }
+        }
+
+        async function loadTickets() {
+            try {
+                const response = await fetch('/api/support');
+                const data = await response.json();
+                allTickets = data.tickets || {};
+                const container = document.getElementById('tickets-container');
+                container.innerHTML = "";
+                
+                Object.values(allTickets).reverse().forEach(t => {
+                    const card = document.createElement('div');
+                    card.className = 'ticket-card';
+                    card.onclick = () => viewTicketDetail(t.id);
+                    card.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <strong style="color: var(--primary-gold);">${t.subject}</strong>
+                            <span class="status-badge-ticket status-${t.status}">${t.status === 'open' ? '{{ t.open }}' : '{{ t.closed }}'}</span>
+                        </div>
+                        <div style="font-size: 0.8rem; color: #888; margin-top: 5px;">
+                            ${t.id} | ${t.time} | ${t.type === 'issue' ? '{{ t.issue }}' : '{{ t.suggestion }}'}
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (e) {}
+        }
+
+        function viewTicketDetail(tid) {
+            const t = allTickets[tid];
+            if (!t) return;
+            
+            document.getElementById('ticket-list-view').style.display = 'none';
+            document.getElementById('ticket-detail-view').style.display = 'block';
+            
+            let repliesHtml = t.replies.map(r => `
+                <div class="reply-item">
+                    <strong style="color: ${r.user === 'admin' ? 'var(--primary-gold)' : '#fff'};">${r.user}:</strong>
+                    <div style="margin-top: 5px;">${r.message}</div>
+                    <div style="font-size: 0.7rem; color: #666; margin-top: 5px;">${r.time}</div>
+                </div>
+            `).join("");
+
+            let actionHtml = "";
+            if (t.status === 'open') {
+                actionHtml = `
+                    <div style="margin-top: 20px;">
+                        <textarea id="reply-text" placeholder="اكتب ردك هنا..." style="width: 100%; background: #000; border: 1px solid #333; border-radius: 8px; color: #fff; padding: 10px;"></textarea>
+                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                            <button onclick="submitReply('${t.id}')" class="btn-primary">إرسال رد</button>
+                            {% if session['role'] == 'admin' %}
+                            <button onclick="closeTicket('${t.id}')" style="background: var(--error-red); color: #fff; border: none; padding: 10px; border-radius: 8px; cursor: pointer;">إغلاق التذكرة</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                `;
+            } else if (t.username === "{{ session['username'] }}" && !t.rating) {
+                actionHtml = `
+                    <div style="margin-top: 20px; text-align: center;">
+                        <p style="color: var(--primary-gold);">كيف كان مستوى الدعم؟</p>
+                        <div style="font-size: 1.5rem; cursor: pointer; margin-top: 10px;">
+                            <span onclick="rateTicket('${t.id}', 1)">⭐</span>
+                            <span onclick="rateTicket('${t.id}', 2)">⭐</span>
+                            <span onclick="rateTicket('${t.id}', 3)">⭐</span>
+                            <span onclick="rateTicket('${t.id}', 4)">⭐</span>
+                            <span onclick="rateTicket('${t.id}', 5)">⭐</span>
+                        </div>
+                    </div>
+                `;
+            } else if (t.rating) {
+                actionHtml = `<div style="margin-top: 20px; color: #2ecc71; text-align: center;">تقييمك: ${'⭐'.repeat(t.rating)}</div>`;
+            }
+
+            document.getElementById('ticket-detail-view').innerHTML = `
+                <div style="border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px;">
+                    <button onclick="showTicketList()" style="background: none; border: none; color: #aaa; cursor: pointer; margin-bottom: 10px;"><i class="fas fa-arrow-right"></i> عودة</button>
+                    <h4 style="color: var(--primary-gold);">${t.subject}</h4>
+                    <p style="font-size: 0.9rem; color: #ccc;">${t.description}</p>
+                </div>
+                <div style="max-height: 300px; overflow-y: auto;">
+                    ${repliesHtml}
+                </div>
+                ${actionHtml}
+            `;
+        }
+
+        async function submitReply(tid) {
+            const msg = document.getElementById('reply-text').value;
+            if (!msg) return;
+            try {
+                const response = await fetch('/api/support/reply', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticket_id: tid, message: msg })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    allTickets[tid].replies.push({ user: "{{ session['username'] }}", message: msg, time: new Date().toISOString() });
+                    viewTicketDetail(tid);
+                }
+            } catch (e) {}
+        }
+
+        async function closeTicket(tid) {
+            if (!confirm("هل أنت متأكد من إغلاق التذكرة؟")) return;
+            try {
+                const response = await fetch('/api/support/close', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticket_id: tid })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    allTickets[tid].status = 'closed';
+                    viewTicketDetail(tid);
+                }
+            } catch (e) {}
+        }
+
+        async function rateTicket(tid, stars) {
+            try {
+                const response = await fetch('/api/support/rate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticket_id: tid, rating: stars })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    allTickets[tid].rating = stars;
+                    viewTicketDetail(tid);
+                }
+            } catch (e) {}
+        }
+
+        // Initial checks
+        checkAnnouncements();
+        setInterval(checkAnnouncements, 60000); // Check every minute
     </script>
 </body>
 

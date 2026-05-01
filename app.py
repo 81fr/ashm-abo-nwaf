@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import os
 import secrets
 import sys
@@ -26,6 +27,8 @@ app.config.update(
     SESSION_COOKIE_SECURE=False, # Set to True if using HTTPS
     SESSION_COOKIE_SAMESITE='Lax',
 )
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # 16MB limit
 
 @app.context_processor
 def inject_translations():
@@ -126,6 +129,28 @@ def log_activity(username, action, extra_data=None):
     
     with open('activity_log.json', 'w', encoding='utf-8') as f:
         json.dump(logs, f, indent=2)
+
+def load_announcements():
+    try:
+        with open('announcements.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except:
+        return []
+
+def save_announcements(ann):
+    with open('announcements.json', 'w', encoding='utf-8') as f:
+        json.dump(ann, f, indent=2)
+
+def load_tickets():
+    try:
+        with open('tickets.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_tickets(tickets):
+    with open('tickets.json', 'w', encoding='utf-8') as f:
+        json.dump(tickets, f, indent=2)
 
 def load_logs():
     try:
@@ -919,6 +944,123 @@ def chat():
         response = f"حدث خطأ أثناء تحليل {ticker}: {str(e)}"
 
     return {"response": response}
+
+@app.route('/api/broadcast', methods=['GET', 'POST'])
+def broadcast():
+    if 'username' not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    if request.method == 'POST':
+        if session.get('role') != 'admin':
+            return {"error": "Admin only"}, 403
+            
+        subject = request.form.get('subject')
+        message = request.form.get('message')
+        file = request.files.get('file')
+        
+        file_url = None
+        if file and file.filename:
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            file_url = f"/static/uploads/{filename}"
+            
+        ann = load_announcements()
+        ann.append({
+            "id": len(ann) + 1,
+            "subject": subject,
+            "message": message,
+            "file_url": file_url,
+            "time": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        })
+        save_announcements(ann)
+        return {"success": True}
+        
+    return {"announcements": load_announcements()}
+
+@app.route('/api/support', methods=['GET', 'POST'])
+def support_tickets():
+    if 'username' not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    username = session['username']
+    tickets = load_tickets()
+    
+    if request.method == 'POST':
+        subject = request.form.get('subject')
+        description = request.form.get('description')
+        type = request.form.get('type') # Issue/Suggestion
+        
+        ticket_id = f"T-{secrets.token_hex(4).upper()}"
+        tickets[ticket_id] = {
+            "id": ticket_id,
+            "username": username,
+            "subject": subject,
+            "description": description,
+            "type": type,
+            "status": "open",
+            "replies": [],
+            "rating": None,
+            "time": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        save_tickets(tickets)
+        return {"success": True, "ticket_id": ticket_id}
+        
+    # If admin, return all. If user, return only theirs.
+    if session.get('role') == 'admin':
+        return {"tickets": tickets}
+    else:
+        user_tickets = {tid: t for tid, t in tickets.items() if t['username'] == username}
+        return {"tickets": user_tickets}
+
+@app.route('/api/support/reply', methods=['POST'])
+def ticket_reply():
+    if 'username' not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    data = request.json
+    ticket_id = data.get('ticket_id')
+    message = data.get('message')
+    
+    tickets = load_tickets()
+    if ticket_id in tickets:
+        tickets[ticket_id]['replies'].append({
+            "user": session['username'],
+            "message": message,
+            "time": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        })
+        save_tickets(tickets)
+        return {"success": True}
+    return {"error": "Ticket not found"}, 404
+
+@app.route('/api/support/close', methods=['POST'])
+def ticket_close():
+    if session.get('role') != 'admin':
+        return {"error": "Admin only"}, 403
+    
+    data = request.json
+    ticket_id = data.get('ticket_id')
+    tickets = load_tickets()
+    if ticket_id in tickets:
+        tickets[ticket_id]['status'] = 'closed'
+        save_tickets(tickets)
+        return {"success": True}
+    return {"error": "Ticket not found"}, 404
+
+@app.route('/api/support/rate', methods=['POST'])
+def ticket_rate():
+    if 'username' not in session:
+        return {"error": "Unauthorized"}, 401
+    
+    data = request.json
+    ticket_id = data.get('ticket_id')
+    rating = data.get('rating')
+    
+    tickets = load_tickets()
+    if ticket_id in tickets and tickets[ticket_id]['username'] == session['username']:
+        tickets[ticket_id]['rating'] = rating
+        save_tickets(tickets)
+        return {"success": True}
+    return {"error": "Unauthorized or not found"}, 404
 
 if __name__ == '__main__':
     # Using host='0.0.0.0' to make it accessible externally if needed
