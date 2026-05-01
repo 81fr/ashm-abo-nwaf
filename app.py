@@ -14,6 +14,7 @@ import json
 import plotly
 import plotly.graph_objects as go
 import pandas as pd
+from translations import get_translations
 
 app = Flask(__name__)
 # Generate a random secret key for session management
@@ -25,6 +26,17 @@ app.config.update(
     SESSION_COOKIE_SECURE=False, # Set to True if using HTTPS
     SESSION_COOKIE_SAMESITE='Lax',
 )
+
+@app.context_processor
+def inject_translations():
+    lang = session.get('lang', 'ar')
+    return dict(t=get_translations(lang), lang=lang)
+
+@app.route('/set_lang/<lang>')
+def set_lang(lang):
+    if lang in ['ar', 'en']:
+        session['lang'] = lang
+    return redirect(request.referrer or url_for('index'))
 
 @app.after_request
 def add_security_headers(response):
@@ -111,12 +123,14 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    lang = session.get('lang', 'ar')
+    t = get_translations(lang)
     error = None
     import time
     if request.method == 'POST':
         if 'lockout_until' in session:
             if time.time() < session['lockout_until']:
-                error = 'لقد تجاوزت الحد الأقصى للمحاولات. الرجاء المحاولة بعد دقيقة.'
+                error = t['lockout_msg']
                 return render_template('login.html', error=error)
             else:
                 session.pop('lockout_until', None)
@@ -131,7 +145,7 @@ def login():
             user_data = users[username]
             if check_password_hash(user_data['password'], password):
                 # Device Locking Logic
-                if user_data.get('role') != 'admin': # Admin can login from any device or we can lock them too
+                if user_data.get('role') != 'admin': # Admin can login from any device
                     stored_device = user_data.get('device_id')
                     if not stored_device:
                         # First time login, associate device
@@ -146,7 +160,7 @@ def login():
                             "time": time.strftime('%Y-%m-%d %H:%M:%S')
                         }
                         save_approvals(approvals)
-                        error = 'هذا الحساب مرتبط بجهاز آخر. تم إرسال طلب تفعيل جهاز جديد للمسؤول.'
+                        error = t['device_locked_msg']
                         return render_template('login.html', error=error)
 
                 from datetime import datetime
@@ -159,23 +173,23 @@ def login():
                     session.pop('login_attempts', None)
                     return redirect(url_for('dashboard'))
                 else:
-                    error = 'عذراً، انتهت صلاحية اشتراكك أو لم تبدأ بعد. يرجى التواصل مع الإدارة.'
+                    error = t['subscription_expired']
             else:
                 attempts = session.get('login_attempts', 0) + 1
                 session['login_attempts'] = attempts
                 if attempts >= 3:
                     session['lockout_until'] = time.time() + 60
-                    error = 'لقد تجاوزت الحد الأقصى للمحاولات. الرجاء المحاولة بعد دقيقة.'
+                    error = t['lockout_msg']
                 else:
-                    error = 'كلمة السر غير صحيحة.'
+                    error = t['wrong_password']
         else:
             attempts = session.get('login_attempts', 0) + 1
             session['login_attempts'] = attempts
             if attempts >= 3:
                 session['lockout_until'] = time.time() + 60
-                error = 'لقد تجاوزت الحد الأقصى للمحاولات. الرجاء المحاولة بعد دقيقة.'
+                error = t['lockout_msg']
             else:
-                error = 'اسم المستخدم غير موجود.'
+                error = t['user_not_found']
             
     return render_template('login.html', error=error)
 
@@ -341,6 +355,8 @@ def chat():
     if 'username' not in session:
         return {"error": "Unauthorized"}, 401
     
+    lang = session.get('lang', 'ar')
+    t = get_translations(lang)
     data = request.json
     user_message = data.get('message', '')
     timeframe = data.get('timeframe', '15m')
@@ -629,7 +645,7 @@ def chat():
             # Use the AI Analyzer with session key
             api_key = session.get('groq_api_key') or DEFAULT_API_KEY
             analyzer = AIAnalyzer(api_key=api_key) 
-            response = analyzer.get_ai_insight(ticker, engine.info, hist, reason, tf_title=tf_title, timeframe_val=timeframe)
+            response = analyzer.get_ai_insight(ticker, engine.info, hist, reason, tf_title=tf_title, timeframe_val=timeframe, lang=lang)
             
         elif "توصية" in user_message and ticker:
             # New Options Trade Signal Card
@@ -683,6 +699,7 @@ def chat():
             else:
                 api_key = session.get('groq_api_key') or DEFAULT_API_KEY
                 analyzer = AIAnalyzer(api_key=api_key) 
+                # Note: get_opportunities_insight still needs lang update if used, but focusing on main insight
                 ai_opportunities_insight = analyzer.get_opportunities_insight(opportunities, tf_title=tf_title, timeframe_val=timeframe)
                 
                 if ai_opportunities_insight:
@@ -744,8 +761,8 @@ def chat():
             </div>
             """
 
-        elif "مرحبا" in user_message or "هلا" in user_message:
-             response = f"مرحباً بك يا {session['username']}! أنا جاهز لتحليل الأسواق. جرب أن تسألني عن 'تحليل فني لـ TSLA' أو 'حلل عقود الخيارات لـ AAPL'."
+        elif "مرحبا" in user_message or "هلا" in user_message or "hello" in user_message.lower() or "hi" in user_message.lower():
+             response = f"{t['welcome_msg']} {session['username']}! {t['bot_intro']}"
              
         else:
              # Default to Full Report if only ticker is mentioned (or no specific intent detected)
@@ -762,7 +779,7 @@ def chat():
             # 1. AI Analysis
             api_key = session.get('groq_api_key') or DEFAULT_API_KEY
             analyzer = AIAnalyzer(api_key=api_key) 
-            ai_insight = analyzer.get_ai_insight(ticker, engine.info, hist, compliance_reason)
+            ai_insight = analyzer.get_ai_insight(ticker, engine.info, hist, compliance_reason, lang=lang)
             
             # 2. Charts
             fig = go.Figure()

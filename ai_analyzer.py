@@ -78,6 +78,82 @@ UNIFIED_TABLE_HTML = """
 </table>
 """
 
+UNIFIED_TABLE_HTML_EN = """
+<table style="width: 100%; border-collapse: collapse; margin-top: 15px; background-color: #222; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.3); text-align: left;" dir="ltr">
+    <thead>
+        <tr style="background: linear-gradient(135deg, #d4af37, #aa8529); color: #000;">
+            <th colspan="2" style="padding: 10px; font-size: 1.05rem; text-align: center;">🎯 Comprehensive Analysis: {ticker}</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr style="border-bottom: 1px solid #444;">
+            <td style="padding: 10px; font-weight: bold; width: 40%; color: #d4af37;">Company / Sector</td>
+            <td style="padding: 10px;">(Company & Sector)</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #444;">
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">Current Price</td>
+            <td style="padding: 10px;">{current_price}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #444;">
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">Signal (Buy/Sell)</td>
+            <td style="padding: 10px; font-weight: bold; color: #fff;">(Buy/Sell Signal)</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #444;">
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">Entry Price</td>
+            <td style="padding: 10px; color: #3498db; font-weight: bold;">(Entry/Limit Price)</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #444;">
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">Target Price (TP)</td>
+            <td style="padding: 10px; color: #2ecc71; font-weight: bold;">(Take Profit - TP Price)</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #444;">
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">Stop Loss (SL)</td>
+            <td style="padding: 10px; color: #ff4d4d; font-weight: bold;">(Stop Loss Price)</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #444;">
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">Expected Profit (%)</td>
+            <td style="padding: 10px; font-weight: bold;">(Expected Profit %)</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #444;">
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">Support Level</td>
+            <td style="padding: 10px; color: #3498db; font-weight: bold;">{support}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #444;">
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">Resistance Level</td>
+            <td style="padding: 10px; color: #e74c3c; font-weight: bold;">{resistance}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #444;">
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">Risk/Reward (R/R)</td>
+            <td style="padding: 10px;">(Risk % / Reward-to-Risk)</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #444;">
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">Suggested Entry Time</td>
+            <td style="padding: 10px;">(Suggested Entry Time)</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #444;">
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">Suggested Exit Time</td>
+            <td style="padding: 10px;">(Suggested Exit Time / Max Hold)</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #444;">
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">Strike (Options Only)</td>
+            <td style="padding: 10px;">(Option Strike or 'N/A')</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #444;">
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">Strategic Recommendations</td>
+            <td style="padding: 10px;">(Strategic Suggestions / Best Practices)</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #444;">
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">Fundamentals & Purification</td>
+            <td style="padding: 10px; color: #f39c12;">(Fundamentals & Purification)</td>
+        </tr>
+        <tr>
+            <td style="padding: 10px; font-weight: bold; color: #d4af37;">Analysis Time</td>
+            <td style="padding: 10px;">{generation_time}</td>
+        </tr>
+    </tbody>
+</table>
+"""
+
 class AIAnalyzer:
     def __init__(self, api_key=None):
         self.api_key = api_key or os.getenv("GROQ_API_KEY")
@@ -90,10 +166,10 @@ class AIAnalyzer:
                 base_url="https://api.groq.com/openai/v1"
             )
 
-    def get_ai_insight(self, ticker, info, technical_data, shariah_status, tf_title="يومي", timeframe_val="1d"):
+    def get_ai_insight(self, ticker, info, technical_data, shariah_status, tf_title="يومي", timeframe_val="1d", lang="ar"):
         """Generates a qualitative analysis using Open-Source Llama 3 via Groq."""
         if not self.api_key:
-             return "ملاحظة: مفتاح Groq API غير متوفر."
+             return "Note: Groq API Key missing." if lang == "en" else "ملاحظة: مفتاح Groq API غير متوفر."
 
         current_price = technical_data['Close'].iloc[-1] if technical_data is not None and not technical_data.empty else 0
         rsi = technical_data['RSI'].iloc[-1] if technical_data is not None and not technical_data.empty else 0
@@ -101,53 +177,65 @@ class AIAnalyzer:
         support = technical_data['Low'].rolling(window=20).min().iloc[-1] if technical_data is not None and not technical_data.empty else 0
         resistance = technical_data['High'].rolling(window=20).max().iloc[-1] if technical_data is not None and not technical_data.empty else 0
 
-        # Enforce highly strict max hold times to prevent LLM hallucinating days for a 15-minute chart
+        # Enforce highly strict max hold times
         hold_time_rules = {
-            "15m": "MUST BE '15 إلى 45 دقيقة'",
-            "30m": "MUST BE '30 إلى 90 دقيقة'",
-            "1h": "MUST BE 'ساعة إلى 3 ساعات'",
-            "1d": "MUST BE 'يوم إلى 5 أيام'",
-            "1mo": "MUST BE 'شهر إلى 6 أشهر'"
+            "15m": ("15 to 45 minutes", "15 إلى 45 دقيقة"),
+            "30m": ("30 to 90 minutes", "30 إلى 90 دقيقة"),
+            "1h": ("1 to 3 hours", "ساعة إلى 3 ساعات"),
+            "1d": ("1 to 5 days", "يوم إلى 5 أيام"),
+            "1mo": ("1 to 6 months", "شهر إلى 6 أشهر")
         }
-        hold_instruction = hold_time_rules.get(timeframe_val, "MUST BE 'معتمد على استراتيجيتك'")
+        hold_en, hold_ar = hold_time_rules.get(timeframe_val, ("based on your strategy", "معتمد على استراتيجيتك"))
+        hold_instruction = f"MUST BE '{hold_en}'" if lang == "en" else f"يجب أن يكون '{hold_ar}'"
 
-        prompt = f"""
-        Analyze the US stock {ticker} ({info.get('longName', ticker)}) on the timeframe {tf_title}.
-        Financial Profile:
-        - Sector: {info.get('sector')}
-        - Revenue Growth: {info.get('revenueGrowth')}
-        - Forward P/E: {info.get('forwardPE')}
-        - Shariah Status: {shariah_status}
-        
-        Technical Indicators ({tf_title}):
-        - Current Price: ${current_price:.2f}
-        - RSI: {rsi:.2f}
-        - MACD: {macd:.2f}
-        
-        Please provide a detailed investment recommendation **strictly in Arabic** tailored to this timeframe.
-        CRITICAL: For the 'Suggested Exit Time / Max Hold' (وقت الخروج المقترح (أقصى مدة)) field in the table, it {hold_instruction}. You MUST NOT suggest a longer holding period than this under any circumstances! Do not invent any other duration.
-        
-        You MUST calculate and provide EXPLICIT numbers/percentages for Expected Profit (الربح المتوقع), Risk Percentage (نسبة المخاطرة), Entry Price, Take Profit, and Stop Loss.
-        Add clear Strategic Suggestions (المقترحات الاستراتيجية) based on best practices.
-        You MUST return ONLY the following HTML table format exactly as shown, filled with data in Arabic. Do not add conversational text outside the table.
-        Replace any irrelevant fields (like Strike for spot buying) with 'غير مطبق للأسهم' (N/A).
-        
-        {UNIFIED_TABLE_HTML.format(ticker=f"{ticker} ({tf_title})", current_price=f"${current_price:.2f}", support=f"${support:.2f}", resistance=f"${resistance:.2f}", generation_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))}
+        table_template = UNIFIED_TABLE_HTML_EN if lang == "en" else UNIFIED_TABLE_HTML
+        table_html = table_template.format(
+            ticker=f"{ticker} ({tf_title})",
+            current_price=f"${current_price:.2f}",
+            support=f"${support:.2f}",
+            resistance=f"${resistance:.2f}",
+            generation_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        )
+
+        prompt_en = f"""
+        Analyze the US stock {ticker} ({info.get('longName', ticker)}) on the {tf_title} timeframe.
+        Current Price: ${current_price:.2f}
+        RSI: {rsi:.2f}, MACD: {macd:.2f}
+        Shariah Status: {shariah_status}
+
+        Provide a professional investment analysis in English.
+        CRITICAL: For 'Suggested Exit Time / Max Hold', it {hold_instruction}.
+        You MUST return ONLY the following HTML table format, filled with data in English.
+        {table_html}
         """
+
+        prompt_ar = f"""
+        حلل السهم الأمريكي {ticker} ({info.get('longName', ticker)}) على الإطار الزمني {tf_title}.
+        السعر الحالي: ${current_price:.2f}
+        RSI: {rsi:.2f}, MACD: {macd:.2f}
+        الوضع الشرعي: {shariah_status}
+
+        قدم توصية استثمارية احترافية باللغة العربية.
+        CRITICAL: للحقل 'وقت الخروج المقترح (أقصى مدة)'، {hold_instruction}.
+        يجب أن تعيد فقط جدول HTML التالي، مملوءاً بالبيانات باللغة العربية.
+        {table_html}
+        """
+
+        prompt = prompt_en if lang == "en" else prompt_ar
 
         try:
             if self.client:
                 response = self.client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
                     messages=[
-                        {"role": "system", "content": "أنت خبير مالي احترافي في سوق الأسهم وتقوم بتقديم نصائح تعتمد على البيانات. إجاباتك يجب أن تكون فقط باللغة العربية داخل الجدول المطلوب."},
+                        {"role": "system", "content": f"You are an expert financial advisor. Provide analysis in {'English' if lang == 'en' else 'Arabic'} within the HTML template only."},
                         {"role": "user", "content": prompt}
                     ]
                 )
                 return response.choices[0].message.content
-            return "خطأ: لم يتم تهيئة الاتصال بـ Groq."
+            return "Error: Groq client not initialized." if lang == "en" else "خطأ: لم يتم تهيئة الاتصال بـ Groq."
         except Exception as e:
-            return f"خطأ في توليد تحليل الذكاء الاصطناعي: {str(e)}"
+            return f"Error: {str(e)}" if lang == "en" else f"خطأ في توليد التحليل: {str(e)}"
 
     def get_opportunities_insight(self, opportunities_list, tf_title="يومي", timeframe_val="1d"):
         """Generates an AI-driven report for a list of market opportunities."""

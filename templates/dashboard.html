@@ -181,7 +181,7 @@
 
         /* --- Main Content --- */
         .main-content {
-            margin-right: 280px;
+            margin-{{ 'right' if lang == 'ar' else 'left' }}: 280px;
             padding: 1rem;
             width: calc(100% - 280px);
             min-height: 100vh;
@@ -600,13 +600,13 @@
     </style>
 </head>
 
-<body>
+<body dir="{{ 'rtl' if lang == 'ar' else 'ltr' }}">
     <div class="dashboard-layout">
 
         <!-- Sidebar Navigation -->
-        <aside class="sidebar">
+        <aside class="sidebar" style="{{ 'right: 0; left: auto;' if lang == 'ar' else 'left: 0; right: auto;' }}">
             <div class="brand-logo">
-                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="شعار النظام">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo">
                 <h2>EAGLES OF SPX</h2>
             </div>
 
@@ -614,17 +614,30 @@
                 <li class="nav-item">
                     <a href="#" class="nav-link active">
                         <i class="fas fa-chart-line"></i>
-                        <span>لوحة التحليل الذكي</span>
+                        <span>{{ t.ai_advisor }}</span>
                     </a>
                 </li>
                 {% if session['role'] == 'admin' %}
                 <li class="nav-item">
                     <a href="{{ url_for('admin_panel') }}" class="nav-link">
                         <i class="fas fa-users-cog"></i>
-                        <span>لوحة التحكم (المدير)</span>
+                        <span>{{ t.admin_panel }}</span>
                     </a>
                 </li>
                 {% endif %}
+                <li class="nav-item" style="margin-top: 10px;">
+                    {% if lang == 'ar' %}
+                    <a href="{{ url_for('set_lang', lang='en') }}" class="nav-link">
+                        <i class="fas fa-globe"></i>
+                        <span>English</span>
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('set_lang', lang='ar') }}" class="nav-link">
+                        <i class="fas fa-globe"></i>
+                        <span style="font-family: 'Cairo', sans-serif;">العربية</span>
+                    </a>
+                    {% endif %}
+                </li>
             </ul>
 
             <div style="margin-top: auto;">
@@ -632,13 +645,13 @@
                     <div class="user-avatar">{{ username[0]|upper }}</div>
                     <div class="user-info-text">
                         <h4>{{ username }}</h4>
-                        <p><i class="fas fa-check-circle"></i> متصل</p>
-                        <a href="javascript:void(0)" onclick="openChangePassword()" style="color: var(--primary-gold); font-size: 0.75rem; text-decoration: none;">تغيير كلمة السر</a>
+                        <p><i class="fas fa-check-circle"></i> {{ t.connected }}</p>
+                        <a href="javascript:void(0)" onclick="openChangePassword()" style="color: var(--primary-gold); font-size: 0.75rem; text-decoration: none;">{{ t.change_password }}</a>
                     </div>
                 </div>
                 <a href="{{ url_for('logout') }}" class="logout-btn">
                     <i class="fas fa-sign-out-alt"></i>
-                    <span>تسجيل خروج</span>
+                    <span>{{ t.logout }}</span>
                 </a>
             </div>
         </aside>
@@ -662,10 +675,10 @@
         <main class="main-content">
 
             <header class="top-bar">
-                <h1 class="page-title">نظرة عامة على السوق</h1>
+                <h1 class="page-title">{{ t.dashboard_title }}</h1>
                 <div class="status-badge">
                     <span class="status-dot"></span>
-                    <span>النظام الذكي نشط</span>
+                    <span>{{ t.system_active }}</span>
                 </div>
             </header>
 
@@ -675,37 +688,36 @@
                 <div class="panel-card chat-container" style="grid-column: span 1;">
                     <div class="panel-header">
                         <i class="fas fa-robot"></i>
-                        <h3>المستشار المالي الذكي</h3>
+                        <h3>{{ t.ai_advisor }}</h3>
                     </div>
 
                     <div class="chat-messages" id="chat-messages">
                         <div class="message-bubble message-bot">
-                            مرحباً بك! أنا المستشار الآلي الخاص بك من EAGLES OF SPX.<br><br>
-                            يمكنني تحليل أي سهم أمريكي لك (فني، مالي، وشرعي). قم بكتابة رمز السهم (مثل TSLA) أو اسألني
-                            للحصول على فرص متاحة حالياً.
+                            {{ t.welcome_msg }}<br><br>
+                            {{ t.bot_intro }}
                         </div>
                     </div>
 
                     <div class="quick-actions-wrapper" style="margin-bottom: 10px;">
                         <div class="quick-actions">
-                            <button onclick="sendQuickMessage('تحليل شامل لـ AAPL')" class="action-pill"><i
-                                    class="fas fa-chart-pie"></i> تقرير AAPL</button>
-                            <button onclick="sendQuickMessage('تحليل فني')" class="action-pill"><i
-                                    class="fas fa-chart-line"></i> تحليل فني</button>
-                            <button onclick="sendQuickMessage('عطني الأسهم الإيجابية الآن')" class="action-pill"><i
-                                    class="fas fa-search-dollar"></i> الأسهم الإيجابية الآن</button>
+                            <button onclick="sendQuickMessage('AAPL')" class="action-pill"><i
+                                    class="fas fa-chart-pie"></i> {{ t.comprehensive_report }} AAPL</button>
+                            <button onclick="sendQuickMessage('{{ t.technical_analysis }}')" class="action-pill"><i
+                                    class="fas fa-chart-line"></i> {{ t.technical_analysis }}</button>
+                            <button onclick="sendQuickMessage('{{ t.positive_stocks }}')" class="action-pill"><i
+                                    class="fas fa-search-dollar"></i> {{ t.positive_stocks }}</button>
                         </div>
                     </div>
 
                     <div class="chat-input-wrapper">
-                        <select id="timeframe-select" class="timeframe-select" title="الإطار الزمني للتحليل">
-                            <option value="15m" selected>15 دقيقة</option>
-                            <option value="30m">30 دقيقة</option>
-                            <option value="1h">1 ساعة</option>
-                            <option value="1d">1 يوم</option>
-                            <option value="1mo">1 شهر</option>
+                        <select id="timeframe-select" class="timeframe-select" title="Timeframe">
+                            <option value="15m" selected>{{ t.timeframe_15m }}</option>
+                            <option value="30m">{{ t.timeframe_30m }}</option>
+                            <option value="1h">{{ t.timeframe_1h }}</option>
+                            <option value="1d">{{ t.timeframe_1d }}</option>
+                            <option value="1mo">{{ t.timeframe_1mo }}</option>
                         </select>
-                        <input type="text" id="user-input" placeholder="اكتب رمز السهم أو سؤالك هنا..."
+                        <input type="text" id="user-input" placeholder="..."
                             autocomplete="off">
                         <button onclick="sendMessage()" class="send-btn" id="send-btn">
                             <i class="fas fa-paper-plane"></i>
