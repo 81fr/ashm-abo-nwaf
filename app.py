@@ -64,6 +64,17 @@ def save_users(users):
     with open('users.json', 'w', encoding='utf-8') as f:
         json.dump(users, f, indent=2)
 
+def load_approvals():
+    try:
+        with open('approvals.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_approvals(approvals):
+    with open('approvals.json', 'w', encoding='utf-8') as f:
+        json.dump(approvals, f, indent=2)
+
 def log_activity(username, action, extra_data=None):
     from datetime import datetime
     try:
@@ -113,11 +124,31 @@ def login():
 
         username = request.form['username']
         password = request.form['password']
+        device_id = request.form.get('device_id')
         users = load_users()
         
         if username in users:
             user_data = users[username]
             if check_password_hash(user_data['password'], password):
+                # Device Locking Logic
+                if user_data.get('role') != 'admin': # Admin can login from any device or we can lock them too
+                    stored_device = user_data.get('device_id')
+                    if not stored_device:
+                        # First time login, associate device
+                        user_data['device_id'] = device_id
+                        save_users(users)
+                    elif stored_device != device_id:
+                        # Mismatch, create approval request
+                        approvals = load_approvals()
+                        approvals[username] = {
+                            "username": username,
+                            "new_device_id": device_id,
+                            "time": time.strftime('%Y-%m-%d %H:%M:%S')
+                        }
+                        save_approvals(approvals)
+                        error = 'هذا الحساب مرتبط بجهاز آخر. تم إرسال طلب تفعيل جهاز جديد للمسؤول.'
+                        return render_template('login.html', error=error)
+
                 from datetime import datetime
                 today = datetime.now().strftime('%Y-%m-%d')
                 
@@ -203,6 +234,22 @@ def admin_panel():
                     log_activity(session.get('username'), f"استعادة المستخدم: {rest_user}")
                     msg = f"تم استعادة المستخدم {rest_user} بنجاح."
 
+        elif action == 'approve_device' or action == 'reject_device':
+            target_user = request.form.get('target_user')
+            approvals = load_approvals()
+            if target_user in approvals:
+                if action == 'approve_device':
+                    new_device_id = approvals[target_user]['new_device_id']
+                    users[target_user]['device_id'] = new_device_id
+                    save_users(users)
+                    log_activity(session.get('username'), f"الموافقة على جهاز جديد للمستخدم: {target_user}")
+                    msg = f"تم الموافقة على الجهاز الجديد للمستخدم {target_user}."
+                else:
+                    log_activity(session.get('username'), f"رفض جهاز جديد للمستخدم: {target_user}")
+                    msg = f"تم رفض طلب الجهاز للمستخدم {target_user}."
+                del approvals[target_user]
+                save_approvals(approvals)
+
     # For display, we need logs in reverse but with their original IDs
     display_logs = []
     full_logs_raw = load_logs()
@@ -211,7 +258,8 @@ def admin_panel():
         log_copy['id'] = idx
         display_logs.append(log_copy)
 
-    return render_template('admin.html', users=users, logs=display_logs[::-1], msg=msg)
+    approvals = load_approvals()
+    return render_template('admin.html', users=users, logs=display_logs[::-1], msg=msg, approvals=approvals)
 
 @app.route('/api/change_password', methods=['POST'])
 def change_password():

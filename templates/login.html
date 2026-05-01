@@ -40,6 +40,8 @@
                     <i class="fas fa-eye" id="toggle-password" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.6); cursor: pointer; z-index: 10;" onclick="toggleLoginPass()"></i>
                 </div>
 
+                <input type="hidden" name="device_id" id="device_id">
+
                 <button type="submit" class="login-btn">
                     تسجيل الدخول
                     <i class="fas fa-arrow-left" style="margin-right: 8px;"></i>
@@ -73,6 +75,17 @@
                 toggleIcon.className = 'fas fa-eye';
             }
         }
+
+        // Device ID Generation and Tracking
+        document.addEventListener('DOMContentLoaded', () => {
+            let deviceId = localStorage.getItem('eagle_device_id');
+            if (!deviceId) {
+                // Generate a relatively unique ID
+                deviceId = 'dev_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now().toString(36);
+                localStorage.setItem('eagle_device_id', deviceId);
+            }
+            document.getElementById('device_id').value = deviceId;
+        });
     </script>
 </body>
 
