@@ -4,6 +4,7 @@ from werkzeug.utils import secure_filename
 import os
 import secrets
 import sys
+from datetime import datetime
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -110,7 +111,6 @@ def save_approvals(approvals):
         json.dump(approvals, f, indent=2)
 
 def log_activity(username, action, extra_data=None):
-    from datetime import datetime
     try:
         with open('activity_log.json', 'r', encoding='utf-8') as f:
             logs = json.load(f)
