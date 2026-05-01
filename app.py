@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session
+from werkzeug.security import generate_password_hash, check_password_hash
 import os
 import secrets
 import sys
@@ -18,10 +19,34 @@ app = Flask(__name__)
 # Generate a random secret key for session management
 app.secret_key = secrets.token_hex(16)
 
+# Session security configurations
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SECURE=False, # Set to True if using HTTPS
+    SESSION_COOKIE_SAMESITE='Lax',
+)
+
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    
+    # Content Security Policy
+    csp = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.plot.ly https://cdnjs.cloudflare.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; "
+        "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
+        "img-src 'self' data:; "
+        "connect-src 'self';"
+    )
+    response.headers['Content-Security-Policy'] = csp
+    return response
+
 # Hardcoded credentials for demonstration
 # In production, use a database or environment variables
-USERNAME = "admin"
-PASSWORD = "Az@123"
 import os
 DEFAULT_API_KEY = os.environ.get("GROQ_API_KEY", "")
 
@@ -31,7 +56,9 @@ def load_users():
         with open('users.json', 'r', encoding='utf-8') as f:
             return json.load(f)
     except:
-        return {"admin": {"password": "Az@123", "start_date": "2024-01-01", "end_date": "2099-12-31"}}
+        # Default admin with hashed password "Az@123"
+        hashed_pass = generate_password_hash("Az@123")
+        return {"admin": {"password": hashed_pass, "start_date": "2024-01-01", "end_date": "2099-12-31", "role": "admin"}}
 
 def save_users(users):
     with open('users.json', 'w', encoding='utf-8') as f:
@@ -74,14 +101,23 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
+    import time
     if request.method == 'POST':
+        if 'lockout_until' in session:
+            if time.time() < session['lockout_until']:
+                error = 'لقد تجاوزت الحد الأقصى للمحاولات. الرجاء المحاولة بعد دقيقة.'
+                return render_template('login.html', error=error)
+            else:
+                session.pop('lockout_until', None)
+                session['login_attempts'] = 0
+
         username = request.form['username']
         password = request.form['password']
         users = load_users()
         
         if username in users:
             user_data = users[username]
-            if user_data['password'] == password:
+            if check_password_hash(user_data['password'], password):
                 from datetime import datetime
                 today = datetime.now().strftime('%Y-%m-%d')
                 
@@ -89,13 +125,26 @@ def login():
                 if user_data['start_date'] <= today <= user_data['end_date']:
                     session['username'] = username
                     session['role'] = user_data.get('role', 'user')
+                    session.pop('login_attempts', None)
                     return redirect(url_for('dashboard'))
                 else:
                     error = 'عذراً، انتهت صلاحية اشتراكك أو لم تبدأ بعد. يرجى التواصل مع الإدارة.'
             else:
-                error = 'كلمة السر غير صحيحة.'
+                attempts = session.get('login_attempts', 0) + 1
+                session['login_attempts'] = attempts
+                if attempts >= 3:
+                    session['lockout_until'] = time.time() + 60
+                    error = 'لقد تجاوزت الحد الأقصى للمحاولات. الرجاء المحاولة بعد دقيقة.'
+                else:
+                    error = 'كلمة السر غير صحيحة.'
         else:
-            error = 'اسم المستخدم غير موجود.'
+            attempts = session.get('login_attempts', 0) + 1
+            session['login_attempts'] = attempts
+            if attempts >= 3:
+                session['lockout_until'] = time.time() + 60
+                error = 'لقد تجاوزت الحد الأقصى للمحاولات. الرجاء المحاولة بعد دقيقة.'
+            else:
+                error = 'اسم المستخدم غير موجود.'
             
     return render_template('login.html', error=error)
 
@@ -120,8 +169,10 @@ def admin_panel():
             amount = request.form.get('amount', '0')
             
             if target_user and new_pass:
+                # Hash the password before saving
+                hashed_password = generate_password_hash(new_pass)
                 users[target_user] = {
-                    "password": new_pass,
+                    "password": hashed_password,
                     "start_date": start_date or "2024-01-01",
                     "end_date": end_date or "2025-01-01",
                     "role": role,
@@ -176,7 +227,7 @@ def change_password():
         
     users = load_users()
     if username in users:
-        users[username]['password'] = new_password
+        users[username]['password'] = generate_password_hash(new_password)
         save_users(users)
         log_activity(username, "تغيير كلمة السر الخاصة")
         return {"status": "success", "message": "تم تغيير كلمة السر بنجاح."}
@@ -763,5 +814,5 @@ def chat():
 
 if __name__ == '__main__':
     # Using host='0.0.0.0' to make it accessible externally if needed
-    # Using debug=True for development
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Using debug=False for production security
+    app.run(debug=False, host='0.0.0.0', port=5000)

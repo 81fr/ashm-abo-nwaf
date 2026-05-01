@@ -3,7 +3,7 @@ services:
     name: ashm-abo-nwaf
     env: python
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn -w 4 -b 0.0.0.0:$PORT web.app:app"
+    startCommand: "gunicorn -w 4 -b 0.0.0.0:$PORT app:app"
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.12

@@ -1,12 +1,12 @@
 {
   "admin": {
-    "password": "Az@123",
+    "password": "scrypt:32768:8:1$vekNShkuvbGkjDiH$d8219d869d96845e7f415bbcf96714d1372a89fd2bce6e5f5f9d5895c6c342717a6e0ab13d267f228852734dc1d4b8d2523615cdf04aec66bdc23a112864580a",
     "start_date": "2024-01-01",
     "end_date": "2099-12-31",
     "role": "admin"
   },
   "as": {
-    "password": "123",
+    "password": "scrypt:32768:8:1$u8rQIqeTP1JC04sO$880e94c2a28a53a5e045137af5aadad84825ecd2cdf69c8cbbd0e96e22793be5d2cb39d5087827589c3d7ef6ab6b3b855443817d11a125af047220d39a2a3126",
     "start_date": "2024-01-01",
     "end_date": "2026-12-31",
     "role": "admin",
