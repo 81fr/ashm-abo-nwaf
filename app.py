@@ -999,6 +999,7 @@ def support_tickets():
             "type": type,
             "status": "open",
             "replies": [],
+            "last_reply_by": username,
             "rating": None,
             "time": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
@@ -1023,11 +1024,13 @@ def ticket_reply():
     
     tickets = load_tickets()
     if ticket_id in tickets:
+        sender = session['username']
         tickets[ticket_id]['replies'].append({
-            "user": session['username'],
+            "user": sender,
             "message": message,
             "time": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         })
+        tickets[ticket_id]['last_reply_by'] = sender
         save_tickets(tickets)
         return {"success": True}
     return {"error": "Ticket not found"}, 404

@@ -179,6 +179,28 @@
             box-shadow: 0 5px 15px rgba(255, 77, 77, 0.3);
         }
 
+        /* Badge Styles */
+        .nav-link { position: relative; }
+        .nav-badge {
+            position: absolute;
+            top: 5px;
+            {{ 'right' if lang == 'ar' else 'left' }}: 15px;
+            background: var(--error-red);
+            color: #fff;
+            font-size: 0.65rem;
+            min-width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-weight: 800;
+            box-shadow: 0 0 10px rgba(255, 77, 77, 0.5);
+            display: none;
+        }
+
+        /* --- Custom Modals --- */
+
         /* --- Custom Modals --- */
         .custom-modal {
             display: none;
@@ -713,6 +735,7 @@
                     <a href="javascript:void(0)" onclick="openBroadcastModal()" class="nav-link">
                         <i class="fas fa-bullhorn"></i>
                         <span>{{ t.broadcast }}</span>
+                        <span id="broadcast-badge" class="nav-badge"></span>
                     </a>
                 </li>
                 {% endif %}
@@ -720,6 +743,7 @@
                     <a href="javascript:void(0)" onclick="openSupportModal()" class="nav-link">
                         <i class="fas fa-headset"></i>
                         <span>{{ t.support }}</span>
+                        <span id="support-badge" class="nav-badge"></span>
                     </a>
                 </li>
                 <li class="nav-item" style="margin-top: 10px;">
@@ -822,6 +846,17 @@
 
                 <button onclick="closeSupportModal()" class="btn-secondary" style="margin-top: 20px; width: 100%;">{{ t.cancel }}</button>
             </div>
+        
+        <!-- View Announcements Modal (History) -->
+        <div id="announcement-history-modal" class="custom-modal">
+            <div class="panel-card modal-content" style="max-width: 600px; width: 90%;">
+                <h3 style="margin-bottom: 20px; color: var(--primary-gold);"><i class="fas fa-history"></i> {{ t.broadcast_title }}</h3>
+                <div id="announcements-container" style="max-height: 400px; overflow-y: auto;">
+                    <!-- List of announcements -->
+                </div>
+                <button onclick="closeAnnouncementHistory()" class="btn-secondary" style="margin-top: 20px; width: 100%;">{{ t.cancel }}</button>
+            </div>
+        </div>
         </div>
 
         <!-- Main Content Area -->
@@ -1082,38 +1117,81 @@
                     alert("تم إرسال التعميم بنجاح.");
                     closeBroadcastModal();
                     event.target.reset();
-                    checkAnnouncements();
+                    checkAnnouncements(true);
                 }
             } catch (error) { alert("خطأ في الإرسال."); }
         }
 
-        async function checkAnnouncements() {
+        async function checkAnnouncements(isManual = false) {
             try {
                 const response = await fetch('/api/broadcast');
                 const data = await response.json();
                 const ann = data.announcements || [];
                 if (ann.length > 0) {
                     const latest = ann[ann.length - 1];
-                    document.getElementById('broadcast-notification').style.display = 'flex';
-                    document.getElementById('announcement-count').innerText = ann.length;
+                    const lastSeenId = localStorage.getItem('last_seen_announcement_id');
+                    
+                    if (latest.id > (lastSeenId || 0)) {
+                        document.getElementById('broadcast-badge').innerText = ann.filter(a => a.id > (lastSeenId || 0)).length;
+                        document.getElementById('broadcast-badge').style.display = 'flex';
+                        
+                        // Auto-show latest if not seen in this session
+                        if (!sessionStorage.getItem('ann_shown_' + latest.id) && !isManual) {
+                            showLatestAnnouncement(latest);
+                            sessionStorage.setItem('ann_shown_' + latest.id, 'true');
+                        }
+                    } else {
+                        document.getElementById('broadcast-badge').style.display = 'none';
+                    }
                 }
             } catch (e) {}
         }
 
+        function showLatestAnnouncement(ann) {
+            let fileHtml = ann.file_url ? `<br><a href="${ann.file_url}" target="_blank" style="color: var(--primary-gold);"><i class="fas fa-paperclip"></i> تحميل المرفق</a>` : "";
+            addMessage(`📢 <b>${ann.subject}</b><br>${ann.message}${fileHtml}`, 'bot');
+            localStorage.setItem('last_seen_announcement_id', ann.id);
+            document.getElementById('broadcast-badge').style.display = 'none';
+        }
+
+        function openBroadcastModal() {
+            {% if session['role'] == 'admin' %}
+                document.getElementById('broadcast-modal').style.display = 'flex';
+            {% else %}
+                viewAnnouncements();
+            {% endif %}
+        }
+
         function viewAnnouncements() {
-            // Simplified: Just show the latest in an alert or a more complex modal if needed
-            // For now, let's open the Support Modal area but for announcements
+            document.getElementById('announcement-history-modal').style.display = 'flex';
             fetch('/api/broadcast').then(r => r.json()).then(data => {
                 const ann = data.announcements || [];
-                if (ann.length === 0) return;
-                const latest = ann[ann.length - 1];
-                let fileHtml = latest.file_url ? `<br><a href="${latest.file_url}" target="_blank" style="color: var(--primary-gold);"><i class="fas fa-paperclip"></i> تحميل المرفق</a>` : "";
+                const container = document.getElementById('announcements-container');
+                container.innerHTML = "";
                 
-                // We'll reuse the chat to show the announcement as a bot message
-                addMessage(`📢 <b>${latest.subject}</b><br>${latest.message}${fileHtml}`, 'bot');
-                document.getElementById('broadcast-notification').style.display = 'none';
+                ann.reverse().forEach(a => {
+                    const div = document.createElement('div');
+                    div.className = 'ticket-card';
+                    div.style.cursor = 'default';
+                    div.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <strong style="color: var(--primary-gold);">${a.subject}</strong>
+                            <span style="font-size: 0.7rem; color: #666;">${a.time}</span>
+                        </div>
+                        <p style="margin-top: 10px; font-size: 0.9rem; line-height: 1.4;">${a.message}</p>
+                        ${a.file_url ? `<a href="${a.file_url}" target="_blank" style="color: var(--primary-gold); font-size: 0.8rem;"><i class="fas fa-paperclip"></i> تحميل المرفق</a>` : ""}
+                    `;
+                    container.appendChild(div);
+                });
+                
+                if (ann.length > 0) {
+                    localStorage.setItem('last_seen_announcement_id', ann[0].id); // ann was reversed
+                    document.getElementById('broadcast-badge').style.display = 'none';
+                }
             });
         }
+
+        function closeAnnouncementHistory() { document.getElementById('announcement-history-modal').style.display = 'none'; }
 
         /* --- Support Ticket Functions --- */
         let allTickets = {};
@@ -1156,21 +1234,43 @@
                 const container = document.getElementById('tickets-container');
                 container.innerHTML = "";
                 
+                let unreadCount = 0;
+                const isAdmin = "{{ session['role'] }}" === 'admin';
+                const currentUsername = "{{ session['username'] }}";
+
                 Object.values(allTickets).reverse().forEach(t => {
                     const card = document.createElement('div');
                     card.className = 'ticket-card';
                     card.onclick = () => viewTicketDetail(t.id);
+                    
+                    // Logic for unread
+                    let isUnread = false;
+                    if (isAdmin) {
+                        if (t.status === 'open' && t.last_reply_by !== 'admin') isUnread = true;
+                    } else {
+                        if (t.status === 'open' && t.last_reply_by === 'admin') isUnread = true;
+                    }
+                    if (isUnread) unreadCount++;
+
                     card.innerHTML = `
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <strong style="color: var(--primary-gold);">${t.subject}</strong>
+                            <strong style="color: var(--primary-gold);">${t.subject} ${isUnread ? '<span style="color:var(--error-red); font-size:1.5rem; line-height:0;">•</span>' : ''}</strong>
                             <span class="status-badge-ticket status-${t.status}">${t.status === 'open' ? '{{ t.open }}' : '{{ t.closed }}'}</span>
                         </div>
                         <div style="font-size: 0.8rem; color: #888; margin-top: 5px;">
-                            ${t.id} | ${t.time} | ${t.type === 'issue' ? '{{ t.issue }}' : '{{ t.suggestion }}'}
+                            ${t.username} | ${t.id} | ${t.time}
                         </div>
                     `;
                     container.appendChild(card);
                 });
+
+                const badge = document.getElementById('support-badge');
+                if (unreadCount > 0) {
+                    badge.innerText = unreadCount;
+                    badge.style.display = 'flex';
+                } else {
+                    badge.style.display = 'none';
+                }
             } catch (e) {}
         }
 
@@ -1282,7 +1382,9 @@
 
         // Initial checks
         checkAnnouncements();
+        loadTickets();
         setInterval(checkAnnouncements, 60000); // Check every minute
+        setInterval(loadTickets, 30000); // Check tickets every 30s
     </script>
 </body>
 
