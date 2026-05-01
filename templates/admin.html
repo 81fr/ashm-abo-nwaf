@@ -140,6 +140,7 @@
                 <option value="user">مستخدم عادي</option>
                 <option value="admin">مدير (Admin)</option>
             </select>
+            <input type="number" name="max_devices" placeholder="عدد الأجهزة" value="1" title="عدد الأجهزة المسموح بها" style="width: 100%;">
             <button type="submit" class="btn-add">إضافة مستخدم</button>
         </form>
 
@@ -150,6 +151,7 @@
                     <th>النوع</th>
                     <th>المبلغ</th>
                     <th>كلمة السر</th>
+                    <th>الأجهزة</th>
                     <th>من تاريخ</th>
                     <th>إلى تاريخ</th>
                     <th>إجراء</th>
@@ -167,11 +169,21 @@
                         <i class="fas fa-eye" style="margin-right: 8px; cursor: pointer; color: #666; font-size: 0.8rem;" 
                            onclick="toggleTablePass('pass-{{ loop.index }}', 'stars-{{ loop.index }}', this)"></i>
                     </td>
+                    <td>
+                        <span style="color: {{ '#2ecc71' if (data.device_ids|length) < (data.max_devices|int) else '#ff4d4d' }};">
+                            {{ data.device_ids|length }}/{{ data.max_devices or 1 }}
+                        </span>
+                        <form method="POST" style="display:inline; margin-right: 5px;">
+                            <input type="hidden" name="action" value="reset_devices">
+                            <input type="hidden" name="target_user" value="{{ uname }}">
+                            <button type="submit" title="إعادة ضبط الأجهزة" style="background: none; border: none; color: #aaa; cursor: pointer; font-size: 0.8rem;"><i class="fas fa-undo"></i></button>
+                        </form>
+                    </td>
                     <td>{{ data.start_date }}</td>
                     <td>{{ data.end_date }}</td>
                     <td>
                         <button class="btn-add" style="padding: 5px 10px; font-size: 0.8rem; background: #2ecc71; margin-left: 5px;" 
-                                onclick="openEditModal('{{ uname }}', '{{ data.password }}', '{{ data.start_date }}', '{{ data.end_date }}', '{{ data.role }}', '{{ data.amount or 0 }}')">تعديل</button>
+                                onclick="openEditModal('{{ uname }}', '{{ data.password }}', '{{ data.start_date }}', '{{ data.end_date }}', '{{ data.role }}', '{{ data.amount or 0 }}', '{{ data.max_devices or 1 }}')">تعديل</button>
                         
                         {% if uname != session.get('username') %}
                         <form method="POST" style="display:inline;">
@@ -301,6 +313,11 @@
                     </div>
                 </div>
 
+                <div>
+                    <label style="font-size: 0.85rem; color: #d4af37;">عدد الأجهزة المسموح بها:</label>
+                    <input type="number" name="max_devices" id="edit-max-devices" style="width: 100%;" min="1">
+                </div>
+
                 <div style="display: flex; gap: 10px; margin-top: 10px;">
                     <button type="submit" class="btn-add" style="flex: 1;">حفظ التغييرات</button>
                     <button type="button" onclick="closeEditModal()" style="flex: 1; background: #333; color: #fff; border: none; padding: 10px; border-radius: 8px;">إلغاء</button>
@@ -340,7 +357,7 @@
             }
         }
 
-        function openEditModal(username, password, start, end, role, amount) {
+        function openEditModal(username, password, start, end, role, amount, max_devices) {
             document.getElementById('edit-username').value = username;
             document.getElementById('display-username').innerText = username;
             document.getElementById('edit-pass').value = password;
@@ -348,6 +365,7 @@
             document.getElementById('edit-end').value = end;
             document.getElementById('edit-role').value = role;
             document.getElementById('edit-amount').value = amount;
+            document.getElementById('edit-max-devices').value = max_devices;
             document.getElementById('edit-modal').style.display = 'flex';
         }
 

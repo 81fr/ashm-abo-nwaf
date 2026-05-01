@@ -66,11 +66,30 @@ DEFAULT_API_KEY = os.environ.get("GROQ_API_KEY", "")
 def load_users():
     try:
         with open('users.json', 'r', encoding='utf-8') as f:
-            return json.load(f)
+            users = json.load(f)
+            
+        # Migration: Convert string device_id to list device_ids
+        modified = False
+        for uname, data in users.items():
+            if 'device_id' in data:
+                old_id = data.pop('device_id')
+                data['device_ids'] = [old_id] if old_id else []
+                data['max_devices'] = data.get('max_devices', 1)
+                modified = True
+            elif 'device_ids' not in data:
+                data['device_ids'] = []
+                data['max_devices'] = data.get('max_devices', 1)
+                modified = True
+        
+        if modified:
+            with open('users.json', 'w', encoding='utf-8') as f:
+                json.dump(users, f, indent=2)
+                
+        return users
     except:
         # Default admin with hashed password "Az@123"
         hashed_pass = generate_password_hash("Az@123")
-        return {"admin": {"password": hashed_pass, "start_date": "2024-01-01", "end_date": "2099-12-31", "role": "admin"}}
+        return {"admin": {"password": hashed_pass, "start_date": "2024-01-01", "end_date": "2099-12-31", "role": "admin", "device_ids": [], "max_devices": 1}}
 
 def save_users(users):
     with open('users.json', 'w', encoding='utf-8') as f:
@@ -146,22 +165,26 @@ def login():
             if check_password_hash(user_data['password'], password):
                 # Device Locking Logic
                 if user_data.get('role') != 'admin': # Admin can login from any device
-                    stored_device = user_data.get('device_id')
-                    if not stored_device:
-                        # First time login, associate device
-                        user_data['device_id'] = device_id
-                        save_users(users)
-                    elif stored_device != device_id:
-                        # Mismatch, create approval request
-                        approvals = load_approvals()
-                        approvals[username] = {
-                            "username": username,
-                            "new_device_id": device_id,
-                            "time": time.strftime('%Y-%m-%d %H:%M:%S')
-                        }
-                        save_approvals(approvals)
-                        error = t['device_locked_msg']
-                        return render_template('login.html', error=error)
+                    device_ids = user_data.get('device_ids', [])
+                    max_devices = int(user_data.get('max_devices', 1))
+                    
+                    if device_id not in device_ids:
+                        if len(device_ids) < max_devices:
+                            # Still have room, auto-link
+                            device_ids.append(device_id)
+                            user_data['device_ids'] = device_ids
+                            save_users(users)
+                        else:
+                            # Mismatch and limit reached, create approval request
+                            approvals = load_approvals()
+                            approvals[username] = {
+                                "username": username,
+                                "new_device_id": device_id,
+                                "time": time.strftime('%Y-%m-%d %H:%M:%S')
+                            }
+                            save_approvals(approvals)
+                            error = t['device_locked_msg']
+                            return render_template('login.html', error=error)
 
                 from datetime import datetime
                 today = datetime.now().strftime('%Y-%m-%d')
@@ -212,19 +235,26 @@ def admin_panel():
             end_date = request.form.get('end_date')
             role = request.form.get('role', 'user')
             amount = request.form.get('amount', '0')
+            max_devices = int(request.form.get('max_devices', 1))
             
             if target_user and new_pass:
                 # Hash the password before saving
                 hashed_password = generate_password_hash(new_pass)
+                
+                # Maintain existing device_ids if editing
+                existing_ids = users.get(target_user, {}).get('device_ids', []) if action == 'edit' else []
+                
                 users[target_user] = {
                     "password": hashed_password,
                     "start_date": start_date or "2024-01-01",
                     "end_date": end_date or "2025-01-01",
                     "role": role,
-                    "amount": amount
+                    "amount": amount,
+                    "max_devices": max_devices,
+                    "device_ids": existing_ids
                 }
                 save_users(users)
-                log_activity(session.get('username'), f"{'إضافة' if action == 'add' else 'تعديل'} المستخدم: {target_user} (المبلغ: {amount})")
+                log_activity(session.get('username'), f"{'إضافة' if action == 'add' else 'تعديل'} المستخدم: {target_user} (الأجهزة: {max_devices})")
                 msg = f"تم {'إضافة' if action == 'add' else 'تعديل'} المستخدم {target_user} بنجاح."
         
         elif action == 'delete':
@@ -254,7 +284,12 @@ def admin_panel():
             if target_user in approvals:
                 if action == 'approve_device':
                     new_device_id = approvals[target_user]['new_device_id']
-                    users[target_user]['device_id'] = new_device_id
+                    if 'device_ids' not in users[target_user]:
+                        users[target_user]['device_ids'] = []
+                    
+                    if new_device_id not in users[target_user]['device_ids']:
+                        users[target_user]['device_ids'].append(new_device_id)
+                        
                     save_users(users)
                     log_activity(session.get('username'), f"الموافقة على جهاز جديد للمستخدم: {target_user}")
                     msg = f"تم الموافقة على الجهاز الجديد للمستخدم {target_user}."
@@ -263,6 +298,14 @@ def admin_panel():
                     msg = f"تم رفض طلب الجهاز للمستخدم {target_user}."
                 del approvals[target_user]
                 save_approvals(approvals)
+
+        elif action == 'reset_devices':
+            target_user = request.form.get('target_user')
+            if target_user in users:
+                users[target_user]['device_ids'] = []
+                save_users(users)
+                log_activity(session.get('username'), f"إعادة ضبط أجهزة المستخدم: {target_user}")
+                msg = f"تم مسح جميع الأجهزة المرتبطة بالمستخدم {target_user}."
 
     # For display, we need logs in reverse but with their original IDs
     display_logs = []
