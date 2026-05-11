@@ -434,3 +434,38 @@ class AIAnalyzer:
             return "خطأ: لم يتم تهيئة الاتصال بـ Groq."
         except Exception as e:
             return f"خطأ في توليد التوصية: {str(e)}"
+    def get_market_briefing(self, market_data):
+        """Generates a professional AI morning briefing for the US market."""
+        if not self.api_key:
+            return "مفتاح Groq API غير متوفر."
+
+        prompt = f"""
+        Generate a professional US Market Morning Briefing in Arabic for a beginner audience.
+        Analyze the following data:
+        - S&P 500: {market_data.get('spx_change', 0):.2f}% change
+        - Nasdaq 100: {market_data.get('ndx_change', 0):.2f}% change
+        - Dow Jones: {market_data.get('dji_change', 0):.2f}% change
+        - Market Sentiment: {market_data.get('sentiment', 'Neutral')}
+        
+        The briefing should include:
+        1. 🌤️ ملخص الجلسة السابقة (Previous Session Summary)
+        2. 🧭 الاتجاه المتوقع اليوم (Expected Trend)
+        3. 💡 نصيحة الخبير للمبتدئين (Consultant's Tip)
+        
+        Keep it concise, professional, and encouraging. Use Arabic only. 
+        Format it in HTML with nice styles for a dashboard popup.
+        """
+        
+        try:
+            if self.client:
+                response = self.client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[
+                        {"role": "system", "content": "أنت مستشار مالي خبير تقدم ملخصاً يومياً لسوق الأسهم الأمريكي بالعربي للمبتدئين."},
+                        {"role": "user", "content": prompt}
+                    ]
+                )
+                return response.choices[0].message.content
+        except Exception as e:
+            return f"خطأ في توليد الملخص: {str(e)}"
+        return "تعذر الحصول على الملخص حالياً."

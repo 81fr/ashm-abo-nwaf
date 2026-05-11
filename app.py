@@ -1056,6 +1056,31 @@ def chat():
 
     return {"response": response}
 
+@app.route('/api/morning_briefing')
+def api_morning_briefing():
+    """Generates and returns the daily market briefing."""
+    try:
+        # Get index data
+        indices = {"SPX": "^GSPC", "NDX": "^NDX", "DJI": "^DJI"}
+        market_results = {}
+        for name, sym in indices.items():
+            t = yf.Ticker(sym)
+            d = t.history(period="2d")
+            if len(d) >= 2:
+                change = ((d['Close'].iloc[-1] - d['Close'].iloc[-2]) / d['Close'].iloc[-2]) * 100
+                market_results[f"{name.lower()}_change"] = change
+        
+        sentiment, _ = StockEngine.get_global_sentiment()
+        market_results['sentiment'] = sentiment
+        
+        api_key = session.get('groq_api_key') or DEFAULT_API_KEY
+        analyzer = AIAnalyzer(api_key=api_key)
+        briefing_html = analyzer.get_market_briefing(market_results)
+        
+        return {"briefing": briefing_html}
+    except Exception as e:
+        return {"briefing": f"خطأ في توليد الملخص: {str(e)}"}
+
 @app.route('/api/market_movers')
 def api_market_movers():
     """Returns top gainers and losers."""
