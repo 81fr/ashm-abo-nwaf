@@ -816,6 +816,12 @@
                         <span id="support-badge" class="nav-badge"></span>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="javascript:void(0)" onclick="showMorningBriefing(true)" class="nav-link">
+                        <i class="fas fa-sun" style="color: #e2c044;"></i>
+                        <span>ملخص الصباح الذكي</span>
+                    </a>
+                </li>
                 <li class="nav-item" style="margin-top: 10px;">
                     {% if lang == 'ar' %}
                     <a href="{{ url_for('set_lang', lang='en') }}" class="nav-link">
@@ -1700,7 +1706,7 @@
         checkAnnouncements();
         loadTickets();
         checkMarketStatus();
-        checkMorningBriefing();
+        showMorningBriefing();
         loadPortfolio();
 
         setInterval(checkAnnouncements, 60000); // Check every minute
@@ -1804,13 +1810,23 @@
         }
 
         // Morning Briefing Logic
-        async function checkMorningBriefing() {
-            if (sessionStorage.getItem('briefing_seen')) return;
+        async function showMorningBriefing(manual = false) {
+            if (!manual && sessionStorage.getItem('briefing_seen')) return;
             
             const modal = document.getElementById('briefing-modal');
             const content = document.getElementById('briefing-content');
             modal.style.display = 'block';
             
+            // Reset loader if manual
+            if (manual) {
+                content.innerHTML = `
+                    <div style="text-align: center; padding: 40px;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #e2c044;"></i>
+                        <p>جاري تحديث ملخص السوق لك...</p>
+                    </div>
+                `;
+            }
+
             try {
                 const response = await fetch('/api/morning_briefing');
                 const data = await response.json();
