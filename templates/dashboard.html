@@ -957,8 +957,30 @@
 
             <div class="dashboard-grid">
 
+                <!-- Market Pulse / Movers -->
+                <div class="panel-card" style="grid-column: span 1;">
+                    <div class="panel-header">
+                        <i class="fas fa-wave-square"></i>
+                        <h3>{{ t.market_pulse or 'نبض السوق (الأكثر تحركاً)' }}</h3>
+                    </div>
+                    <div style="padding: 15px;">
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: #2ecc71; font-size: 0.9rem; margin-bottom: 10px;"><i class="fas fa-arrow-up"></i> الأكثر ارتفاعاً</h4>
+                            <div id="gainers-list" class="movers-grid">
+                                <!-- Dynamic -->
+                            </div>
+                        </div>
+                        <div>
+                            <h4 style="color: #e74c3c; font-size: 0.9rem; margin-bottom: 10px;"><i class="fas fa-arrow-down"></i> الأكثر انخفاضاً</h4>
+                            <div id="losers-list" class="movers-grid">
+                                <!-- Dynamic -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- AI Chat Interface -->
-                <div class="panel-card chat-container" style="grid-column: span 1;">
+                <div class="panel-card chat-container" style="grid-column: span 2;">
                     <div class="panel-header">
                         <i class="fas fa-robot"></i>
                         <h3>{{ t.ai_advisor }}</h3>
@@ -1583,8 +1605,37 @@
                     sentText.textContent = `سوق هادئ (${data.sentiment_change}%)`;
                     sentIcon.className = 'fas fa-minus';
                 }
+                // Movers Data
+                if (data.movers) {
+                    const gainersList = document.getElementById('gainers-list');
+                    const losersList = document.getElementById('losers-list');
+                    
+                    gainersList.innerHTML = '';
+                    data.movers.gainers.forEach(m => {
+                        gainersList.innerHTML += `
+                            <div class="mover-item" onclick="sendQuickMessage('${m.ticker}')">
+                                <span class="mover-ticker">${m.ticker}</span>
+                                <span class="mover-price">$${m.price}</span>
+                                <span class="mover-change mover-up">+${m.change}%</span>
+                            </div>
+                        `;
+                    });
 
-            } catch (e) {}
+                    losersList.innerHTML = '';
+                    data.movers.losers.forEach(m => {
+                        losersList.innerHTML += `
+                            <div class="mover-item" onclick="sendQuickMessage('${m.ticker}')">
+                                <span class="mover-ticker">${m.ticker}</span>
+                                <span class="mover-price">$${m.price}</span>
+                                <span class="mover-change mover-down">${m.change}%</span>
+                            </div>
+                        `;
+                    });
+                }
+
+            } catch (e) {
+                console.error("Market Status Error:", e);
+            }
         }
 
         // Initial checks

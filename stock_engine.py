@@ -290,6 +290,82 @@ class StockEngine:
         except:
             return "Neutral", 0
 
+    def calculate_fundamental_score(self):
+        """Calculates a fundamental score (0-100) based on Value, Growth, and Quality."""
+        score = 0
+        try:
+            # 1. Valuation (P/E Ratio)
+            pe = self.info.get("trailingPE")
+            if pe:
+                if pe < 15: score += 25
+                elif pe < 25: score += 15
+                elif pe < 35: score += 5
+            
+            # 2. Profitability (ROE)
+            roe = self.info.get("returnOnEquity")
+            if roe:
+                if roe > 0.20: score += 25
+                elif roe > 0.10: score += 15
+                elif roe > 0.05: score += 5
+            
+            # 3. Growth (Revenue Growth)
+            growth = self.info.get("revenueGrowth")
+            if growth:
+                if growth > 0.20: score += 25
+                elif growth > 0.10: score += 15
+                elif growth > 0.05: score += 5
+            
+            # 4. Financial Health (Debt/Equity)
+            de = self.info.get("debtToEquity")
+            if de:
+                if de < 50: score += 25
+                elif de < 100: score += 15
+                elif de < 150: score += 5
+            
+            # If data is missing for some fields, normalize the score
+            return score
+        except:
+            return 50 # Default middle score if analysis fails
+
+    def calculate_position_size(self, capital, risk_pct, entry, sl):
+        """Calculates recommended shares and position size based on risk."""
+        if entry == sl: return 0, 0
+        
+        risk_amount = capital * (risk_pct / 100)
+        risk_per_share = abs(entry - sl)
+        
+        if risk_per_share == 0: return 0, 0
+        
+        shares = int(risk_amount / risk_per_share)
+        pos_value = shares * entry
+        
+        return shares, pos_value
+
+    @staticmethod
+    def get_market_movers():
+        """Fetches top gainers/losers from a sample of S&P 500."""
+        tickers = ["AAPL", "MSFT", "NVDA", "TSLA", "META", "AMZN", "GOOG", "AMD", "NFLX", "BRK-B", "JPM", "V", "UNH", "HD", "PG"]
+        movers = []
+        try:
+            data = yf.download(tickers, period="1d", group_by='ticker', silent=True)
+            for ticker in tickers:
+                if ticker not in data: continue
+                # Handle MultiIndex
+                try:
+                    ticker_data = data[ticker]
+                    open_p = ticker_data['Open'].iloc[0]
+                    close_p = ticker_data['Close'].iloc[0]
+                    change = ((close_p - open_p) / open_p) * 100
+                    movers.append({"ticker": ticker, "change": round(change, 2), "price": round(close_p, 2)})
+                except:
+                    continue
+            
+            # Sort by change
+            movers.sort(key=lambda x: x['change'], reverse=True)
+            return movers[:5], movers[-5:] # Top 5 Gainers, Top 5 Losers
+        except:
+            return [], []
+
 if __name__ == "__main__":
     # Test with a known stock
     engine = StockEngine("AAPL")
@@ -300,7 +376,9 @@ if __name__ == "__main__":
     
     print(f"Ticker: AAPL")
     print(f"Shariah Status: {reason}")
-    print(f"Technical Recommendation: {rec}")
+    print(f"Fundamental Score: {engine.calculate_fundamental_score()}")
     print(f"Current Price: {hist['Close'].iloc[-1]:.2f}")
-    sentiment, change = StockEngine.get_global_sentiment()
-    print(f"Market Sentiment: {sentiment} ({change:.2f}%)")
+    
+    gainers, losers = StockEngine.get_market_movers()
+    print(f"Top Gainer: {gainers[0] if gainers else 'N/A'}")
+

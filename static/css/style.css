@@ -427,3 +427,54 @@ input:focus+.input-icon,
 .ai-table tbody tr:last-of-type {
     border-bottom: 2px solid var(--primary-gold);
 }
+
+/* Market Movers Grid */
+.movers-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.mover-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 10px 15px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.mover-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateX(-5px);
+}
+
+.mover-ticker {
+    font-weight: 700;
+    color: var(--primary-gold);
+}
+
+.mover-price {
+    font-size: 0.85rem;
+    color: #888;
+}
+
+.mover-change {
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.mover-up {
+    background: rgba(46, 204, 113, 0.15);
+    color: #2ecc71;
+}
+
+.mover-down {
+    background: rgba(231, 76, 60, 0.15);
+    color: #e74c3c;
+}

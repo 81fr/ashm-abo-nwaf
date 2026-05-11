@@ -67,6 +67,14 @@ UNIFIED_TABLE_HTML = """
             <td style="padding: 12px; color: #f1c40f; font-weight: bold;">(Max Hold Time)</td>
         </tr>
         <tr style="border-bottom: 1px solid #222;">
+            <td style="padding: 12px; font-weight: bold; color: #d4af37; background: rgba(212,175,55,0.02);">إدارة المخاطر (لـ $10k)</td>
+            <td style="padding: 12px; color: #f1c40f; font-weight: bold;">(Position Size Recommendation)</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #222;">
+            <td style="padding: 12px; font-weight: bold; color: #d4af37; background: rgba(212,175,55,0.02);">قوة الأساسيات (0-100)</td>
+            <td style="padding: 12px; color: #fff; font-weight: bold;">(Fundamental Score)</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #222;">
             <td style="padding: 12px; font-weight: bold; color: #d4af37; background: rgba(212,175,55,0.02);">مناطق الدعم والمقاومة</td>
             <td style="padding: 12px; color: #ccc; font-size: 0.9rem;">{support} - {resistance}</td>
         </tr>
@@ -242,7 +250,7 @@ class AIAnalyzer:
            - risk_text: (منخفضة، متوسطة، أو عالية)
            - risk_color: (#2ecc71 لمنخفضة، #f1c40f لمتوسطة، #e74c3c لعالية)
            - simple_reason: جملة واحدة بسيطة تشرح السبب لمبتدئ لا يفهم في الأسهم.
-        2. جدول البيانات التفصيلي HTML مملوءاً بالبيانات الفنية.
+        2. جدول البيانات التفصيلي HTML مملوءاً بالبيانات، مع ذكر 'قوة الأساسيات (0-100)' و 'إدارة المخاطر (لـ $10k)' بشكل دقيق.
         
         قالب الملخص للمبتدئين:
         {BEGINNER_SUMMARY_HTML}

@@ -741,11 +741,20 @@ def chat():
             gen_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             rec_class = 'buy' if 'شراء' in rec_signal else 'sell' if 'بيع' in rec_signal else 'hold'
 
+            # Position Sizing (Pro Feature)
+            capital = 10000 # Default example capital
+            risk_pct = 1.0 # Standard 1% risk
+            shares, pos_value = 0, 0
+            if levels and 'Entry' in levels and 'SL' in levels:
+                shares, pos_value = engine.calculate_position_size(capital, risk_pct, levels['Entry'], levels['SL'])
+            
+            fund_score = engine.calculate_fundamental_score()
+
             table_html = f"""
             <table style="width: 100%; border-collapse: collapse; margin-top: 15px; background-color: #222; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.3); text-align: right;" dir="rtl">
                 <thead>
                     <tr style="background: linear-gradient(135deg, #d4af37, #aa8529); color: #000;">
-                        <th colspan="2" style="padding: 10px; font-size: 1.05rem; text-align: center;">📈 التحليل اللحظي الفني: {ticker} ({tf_title})</th>
+                        <th colspan="2" style="padding: 10px; font-size: 1.05rem; text-align: center;">📈 التحليل الفني الشامل: {ticker} ({tf_title})</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -758,48 +767,33 @@ def chat():
                         <td style="padding: 10px;">${latest['Close']:.2f}</td>
                     </tr>
                     <tr style="border-bottom: 1px solid #444;">
-                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">إشارة التداول (بيع/شراء)</td>
+                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">إشارة التداول</td>
                         <td style="padding: 10px; font-weight: bold;" class="recommendation-box {rec_class}">{rec_signal}</td>
                     </tr>
                     <tr style="border-bottom: 1px solid #444;">
-                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">أمر التنفيذ (سعر الدخول)</td>
-                        <td style="padding: 10px; color: #3498db; font-weight: bold;">{entry_val}</td>
+                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">أمر الدخول / الوقف / الهدف</td>
+                        <td style="padding: 10px; font-weight: bold;">
+                            <span style="color: #3498db;">دخول: {entry_val}</span> | 
+                            <span style="color: #ff4d4d;">وقف: {sl_val}</span> | 
+                            <span style="color: #2ecc71;">هدف: {tp_val}</span>
+                        </td>
                     </tr>
                     <tr style="border-bottom: 1px solid #444;">
-                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">سعر الخروج (الهدف المقترح)</td>
-                        <td style="padding: 10px; color: #2ecc71; font-weight: bold;">{tp_val}</td>
+                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">إدارة المخاطر (لـ $10k)</td>
+                        <td style="padding: 10px; color: #f1c40f;">
+                            اشتري <strong>{shares} سهم</strong> (بقيمة ${pos_value:,.2f})<br>
+                            <small style="color: #aaa;">*مخاطرة 1% من رأس المال ($100)</small>
+                        </td>
                     </tr>
                     <tr style="border-bottom: 1px solid #444;">
-                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">وقف الخسارة (SL)</td>
-                        <td style="padding: 10px; color: #ff4d4d; font-weight: bold;">{sl_val}</td>
+                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">قوة الأساسيات (0-100)</td>
+                        <td style="padding: 10px; font-weight: bold; color: {'#2ecc71' if fund_score > 60 else '#f1c40f' if fund_score > 40 else '#e74c3c'};">
+                            {fund_score} / 100
+                        </td>
                     </tr>
                     <tr style="border-bottom: 1px solid #444;">
-                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">الربح المتوقع (%)</td>
-                        <td style="padding: 10px; font-weight: bold; color: #2ecc71;">{expected_profit_pct}</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #444;">
-                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">منطقة الارتداد (دعم)</td>
-                        <td style="padding: 10px; color: #3498db; font-weight: bold;">{sup_val}</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #444;">
-                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">منطقة الانعكاس (مقاومة)</td>
-                        <td style="padding: 10px; color: #e74c3c; font-weight: bold;">{res_val}</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #444;">
-                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">نسبة المخاطرة للمكافأة (R/R)</td>
-                        <td style="padding: 10px;">{risk_reward_ratio}</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #444;">
-                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">وقت الدخول المقترح</td>
-                        <td style="padding: 10px;">عند التأكيد أو السعر المذكور</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #444;">
-                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">وقت الخروج المقترح (أقصى مدة)</td>
-                        <td style="padding: 10px;">{max_hold}</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #444;">
-                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">المقترحات الاستراتيجية</td>
-                        <td style="padding: 10px;">التزم بوقف الخسارة وجني الأرباح عند الأهداف المحددة.</td>
+                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">الدعم / المقاومة</td>
+                        <td style="padding: 10px;">{sup_val} / {res_val}</td>
                     </tr>
                     <tr style="border-bottom: 1px solid #444;">
                         <td style="padding: 10px; font-weight: bold; color: #d4af37;">الأساسيات ونسبة التطهير</td>
@@ -812,6 +806,7 @@ def chat():
                 </tbody>
             </table>
             """
+
             
             response = f"{market_alert}\n{table_html}"
             
@@ -1061,16 +1056,24 @@ def chat():
 
     return {"response": response}
 
+@app.route('/api/market_movers')
+def api_market_movers():
+    """Returns top gainers and losers."""
+    gainers, losers = StockEngine.get_market_movers()
+    return {"gainers": gainers, "losers": losers}
+
 @app.route('/api/market_status')
 def api_market_status():
     """Returns current US market status for the dashboard."""
     is_open, msg = get_market_status()
     sentiment, change = StockEngine.get_global_sentiment()
+    gainers, losers = StockEngine.get_market_movers()
     return {
         "is_open": is_open, 
         "message": msg,
         "sentiment": sentiment,
-        "sentiment_change": round(change, 2)
+        "sentiment_change": round(change, 2),
+        "movers": {"gainers": gainers, "losers": losers}
     }
 
 @app.route('/api/broadcast', methods=['GET', 'POST'])
