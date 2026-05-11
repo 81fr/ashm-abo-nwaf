@@ -15,6 +15,7 @@ from ai_analyzer import AIAnalyzer
 import json
 import plotly
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import pandas as pd
 from translations import get_translations
 
@@ -450,7 +451,7 @@ def chat():
     period = timeframe_to_period.get(timeframe, "1y")
     tf_title = timeframe_titles.get(timeframe, "يومي")
     
-    # 1. Extract Ticker
+    # 1. Extract Ticker - Enhanced with Arabic stock name support
     import re
     # Keywords to ignore (common technical terms that might look like tickers)
     IGNORED_KEYWORDS = ['LSTM', 'BERT', 'AI', 'MACD', 'RSI', 'EMA', 'SMA', 'ATR']
@@ -458,29 +459,52 @@ def chat():
     # Map common index abbreviations to their yfinance ticker symbols
     TICKER_MAP = {
         'NDQ': 'NQ=F',      # Nasdaq 100 Futures
-        'NDX': '^NDX',      # Nasdaq 100 Index
-        'SPX': '^SPX',      # S&P 500 Index
-        'DOW': '^DJI',      # Dow Jones Industrial Average
+        'NDX': '^NDX',       # Nasdaq 100 Index
+        'SPX': '^SPX',       # S&P 500 Index
+        'DOW': '^DJI',       # Dow Jones Industrial Average
         'DJI': '^DJI',
-        'VIX': '^VIX',      # Volatility Index
-        'QQQ': 'QQQ',       # In case they mean the ETF
-        'SPY': 'SPY'        # In case they mean the ETF
+        'VIX': '^VIX',       # Volatility Index
+        'QQQ': 'QQQ',        # Nasdaq ETF
+        'SPY': 'SPY'         # S&P 500 ETF
     }
     
-    ticker_match = re.search(r'\b[A-Z]{2,5}\b', user_message)
-    potential_ticker = ticker_match.group(0) if ticker_match else None
+    # Arabic stock name to ticker mapping for beginners
+    ARABIC_STOCK_MAP = {
+        'تسلا': 'TSLA', 'تيسلا': 'TSLA',
+        'ابل': 'AAPL', 'آبل': 'AAPL', 'أبل': 'AAPL', 'ايفون': 'AAPL',
+        'مايكروسوفت': 'MSFT', 'مايكرو': 'MSFT', 'ويندوز': 'MSFT',
+        'جوجل': 'GOOG', 'قوقل': 'GOOG', 'غوغل': 'GOOG', 'الفابت': 'GOOG',
+        'امازون': 'AMZN', 'أمازون': 'AMZN',
+        'ميتا': 'META', 'فيسبوك': 'META', 'فيس': 'META',
+        'انفيديا': 'NVDA', 'نفيديا': 'NVDA', 'إنفيديا': 'NVDA',
+        'ايه ام دي': 'AMD',
+        'ناسداك': 'NQ=F', 'النسداق': 'NQ=F', 'النازداك': 'NQ=F',
+        'اس اند بي': 'SPY', 'اس بي': 'SPY',
+        'بوينج': 'BA', 'بوينغ': 'BA',
+        'ديزني': 'DIS',
+        'نتفلكس': 'NFLX', 'نتفليكس': 'NFLX',
+        'سوني': 'SONY',
+        'اوبر': 'UBER',
+        'كوين': 'COIN', 'كوين بيس': 'COIN',
+    }
     
+    # Try Arabic name first
     ticker = None
-    if potential_ticker and potential_ticker not in IGNORED_KEYWORDS:
-        # Translate the ticker if it's in our map, otherwise use it as is
-        ticker = TICKER_MAP.get(potential_ticker, potential_ticker)
+    for ar_name, ar_ticker in ARABIC_STOCK_MAP.items():
+        if ar_name in user_message:
+            ticker = ar_ticker
+            break
+    
+    # Then try English ticker symbol
+    if not ticker:
+        ticker_match = re.search(r'\b[A-Z]{2,5}\b', user_message)
+        potential_ticker = ticker_match.group(0) if ticker_match else None
+        
+        if potential_ticker and potential_ticker not in IGNORED_KEYWORDS:
+            ticker = TICKER_MAP.get(potential_ticker, potential_ticker)
     
     if not ticker and 'last_ticker' in session:
         ticker = session['last_ticker']
-    elif not ticker:
-         # If no ticker found and no last ticker, we can't proceed with stock analysis
-         # unless it's a general greeting or scanner request.
-         pass 
 
     if ticker:
         session['last_ticker'] = ticker
@@ -493,18 +517,72 @@ def chat():
     response = ""
     
     try:
-        # Determine intent that doesn't require specific ticker first
-        # Make sure we don't accidentally catch "توصية" for a specific ticker as a general scanner request
-        is_scanner_request = ("عطني سهم" in user_message or "توصيات" in user_message or "فرص" in user_message or ("سهم" in user_message and "توصية" not in user_message and ticker is None))
+        # Enhanced intent detection with colloquial Arabic support
+        msg_lower = user_message.lower()
         
-        if is_scanner_request and not ("توصية" in user_message and ticker is not None):
-             # Scanner logic handled below
-             pass
-        elif "مرحبا" in user_message or "هلا" in user_message:
-             # Greeting handled below
-             pass
+        # Scanner keywords (looking for opportunities)
+        scanner_keywords = ["عطني سهم", "عطني اسهم", "توصيات", "فرص", "اعطني", "ابحث", 
+                           "وش افضل", "وش أفضل", "ايش افضل", "أفضل سهم", "فرصة",
+                           "سهم حلو", "سهم زين", "اسهم ايجابية", "أسهم إيجابية",
+                           "ارشحلي", "نصحني", "positive", "scan", "opportunities"]
+        
+        is_scanner_request = any(kw in user_message for kw in scanner_keywords)
+        # Don't treat as scanner if they have a specific ticker with توصية
+        if is_scanner_request and "توصية" in user_message and ticker is not None:
+            is_scanner_request = False
+        
+        # Greeting keywords
+        greeting_keywords = ["مرحبا", "هلا", "السلام", "أهلا", "اهلا", "هاي", "مساء", "صباح",
+                            "hello", "hi", "hey", "مرحب"]
+        is_greeting = any(kw in user_message for kw in greeting_keywords)
+        
+        # Help keywords  
+        help_keywords = ["مساعدة", "كيف", "شرح", "وش يعني", "ايش يعني", "ما معنى",
+                        "help", "how", "explain", "شلون", "كيف استخدم"]
+        is_help = any(kw in user_message for kw in help_keywords)
+        
+        if is_greeting and not ticker:
+            pass  # Handled below
+        elif is_help and not ticker:
+            help_response = """<div style='background: rgba(212,175,55,0.08); border: 1px solid rgba(212,175,55,0.2); border-radius: 12px; padding: 20px;'>
+            <h3 style='color: var(--primary-gold); margin: 0 0 15px 0;'><i class='fas fa-book-open'></i> دليل الاستخدام السريع</h3>
+            <div style='display: grid; gap: 10px;'>
+                <div style='background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;'>
+                    <b style='color: #2ecc71;'>📊 تقرير شامل:</b> اكتب رمز السهم فقط (مثل TSLA أو تسلا)
+                </div>
+                <div style='background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;'>
+                    <b style='color: #3498db;'>📈 تحليل فني:</b> اكتب "تحليل فني AAPL" أو "حلل ابل"
+                </div>
+                <div style='background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;'>
+                    <b style='color: #9b59b6;'>🧠 توقع ذكي:</b> اكتب "توقع NVDA" أو "رأيك في انفيديا"
+                </div>
+                <div style='background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;'>
+                    <b style='color: #e67e22;'>🎯 توصية تداول:</b> اكتب "توصية TSLA" أو "عطني توصية تسلا"
+                </div>
+                <div style='background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;'>
+                    <b style='color: #2ecc71;'>🔍 بحث عن فرص:</b> اكتب "عطني سهم" أو "ابحث عن فرص"
+                </div>
+                <div style='background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;'>
+                    <b style='color: #f1c40f;'>📋 عقود خيارات:</b> اكتب "خيارات AAPL" أو "أوبشن تسلا"
+                </div>
+            </div>
+            <p style='margin-top: 15px; color: #aaa; font-size: 0.85rem;'>💡 <b>نصيحة:</b> يمكنك الكتابة بالعربي أو الإنجليزي. مثلاً "تسلا" = "TSLA"</p>
+            </div>"""
+            return {"response": help_response}
+        elif is_scanner_request:
+            pass  # Scanner handled below
         elif not ticker:
-             return {"response": "الرجاء تحديد اسم السهم (مثل TSLA أو AAPL) للبدء في التحليل."}
+            friendly_msg = """<div style='text-align: center; padding: 20px;'>
+            <i class='fas fa-search' style='font-size: 2rem; color: var(--primary-gold); margin-bottom: 15px; display: block;'></i>
+            <h4 style='color: #fff; margin-bottom: 10px;'>🔎 حدد السهم اللي تبي تحلله</h4>
+            <p style='color: #aaa; font-size: 0.9rem; margin-bottom: 15px;'>اكتب رمز السهم بالإنجليزي أو اسمه بالعربي</p>
+            <div style='display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;'>
+                <span style='background: rgba(212,175,55,0.1); padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; color: var(--primary-gold);'>TSLA أو تسلا</span>
+                <span style='background: rgba(212,175,55,0.1); padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; color: var(--primary-gold);'>AAPL أو ابل</span>
+                <span style='background: rgba(212,175,55,0.1); padding: 5px 12px; border-radius: 15px; font-size: 0.8rem; color: var(--primary-gold);'>NVDA أو انفيديا</span>
+            </div>
+            </div>"""
+            return {"response": friendly_msg}
 
         # Initialize Engine if we have a ticker or if we are scanning (scanner creates its own engines)
         if ticker:
@@ -514,8 +592,14 @@ def chat():
             if hist.empty:
                  return {"response": f"❌ عذراً، لم أتمكن من جلب بيانات للسهم **{ticker}**. يرجى التأكد من الرمز والمحاولة مرة أخرى."}
                  
-        # Determine intent
-        if "تحليل أساسي" in user_message or "البيانات المالية" in user_message:
+        # Determine intent - Enhanced with colloquial Arabic
+        fundamental_keywords = ["تحليل أساسي", "البيانات المالية", "أساسي", "مالي", "ارباح", "أرباح", "قوائم مالية", "fundamental"]
+        technical_keywords = ["تحليل فني", "المؤشرات الفنية", "لحظي", "مضاربة", "ارتداد", "انعكاس", "قصير", "حلل", "فني", "شارت", "تشارت", "chart", "technical", "حركة السعر"]
+        ai_keywords = ["توقع", "ذكاء", "مستشار", "رأيك", "رايك", "وش رايك", "ايش رايك", "شو رايك", "prediction", "ai", "تنبؤ", "نظرتك"]
+        signal_keywords = ["توصية", "عطني توصية", "اشارة", "إشارة", "signal", "سيجنال"]
+        options_keywords = ["عقود الخيارات", "عقود", "خيارات", "أوبشن", "اوبشن", "options", "option", "كول", "بوت"]
+        
+        if any(kw in user_message for kw in fundamental_keywords):
             is_halal, reason = engine.screen_shariah_compliance()
             response = f"""
             📊 **التحليل الأساسي لـ {ticker}:**
@@ -528,7 +612,7 @@ def chat():
             **الوضع الشرعي:** {reason} {'✅' if is_halal else '❌'}
             """
             
-        elif "تحليل فني" in user_message or "المؤشرات الفنية" in user_message or any(kw in user_message for kw in ["لحظي", "مضاربة", "ارتداد", "انعكاس", "قصير"]):
+        elif any(kw in user_message for kw in technical_keywords):
             
             # Use dynamic UI timeframe
             hist = engine.get_market_data(period=period, interval=timeframe)
@@ -540,43 +624,75 @@ def chat():
             rec_signal, levels = engine.get_recommendation(hist)
             latest = hist.iloc[-1]
             
-            # Generate Plotly Chart
-            fig = go.Figure()
+            # Generate Professional Multi-Subplot Chart
+            fig = make_subplots(rows=4, cols=1, shared_xaxes=True, 
+                               vertical_spacing=0.03, 
+                               subplot_titles=(f'تحليل {ticker} - {tf_title}', 'Volume', 'RSI (14)', 'MACD'),
+                               row_width=[0.2, 0.2, 0.15, 0.45])
+
+            # 1. Main Candlestick Chart (Row 1)
             fig.add_trace(go.Candlestick(x=hist.index,
                             open=hist['Open'], high=hist['High'],
-                            low=hist['Low'], close=hist['Close'], name='Price'))
-            fig.add_trace(go.Scatter(x=hist.index, y=hist['EMA20'], name='EMA 20', line=dict(color='orange', width=1)))
-            fig.add_trace(go.Scatter(x=hist.index, y=hist['EMA50'], name='EMA 50', line=dict(color='blue', width=1)))
+                            low=hist['Low'], close=hist['Close'], 
+                            name='Price', showlegend=True), row=1, col=1)
             
-            # Add Trade Levels to Chart if available
+            # Add EMAs
+            fig.add_trace(go.Scatter(x=hist.index, y=hist['EMA20'], name='EMA 20', line=dict(color='#ff9900', width=1.5)), row=1, col=1)
+            fig.add_trace(go.Scatter(x=hist.index, y=hist['EMA50'], name='EMA 50', line=dict(color='#0066ff', width=1.5)), row=1, col=1)
+            
+            # Add Bollinger Bands
+            fig.add_trace(go.Scatter(x=hist.index, y=hist['BB_Upper'], name='BB Upper', line=dict(color='rgba(173, 216, 230, 0.3)', width=1, dash='dot'), showlegend=False), row=1, col=1)
+            fig.add_trace(go.Scatter(x=hist.index, y=hist['BB_Lower'], name='BB Lower', line=dict(color='rgba(173, 216, 230, 0.3)', width=1, dash='dot'), fill='tonexty', fillcolor='rgba(173, 216, 230, 0.05)', showlegend=False), row=1, col=1)
+
+            # 2. Volume (Row 2)
+            colors = ['red' if row['Open'] > row['Close'] else 'green' for index, row in hist.iterrows()]
+            fig.add_trace(go.Bar(x=hist.index, y=hist['Volume'], name='Volume', marker_color=colors, showlegend=False), row=2, col=1)
+
+            # 3. RSI (Row 3)
+            fig.add_trace(go.Scatter(x=hist.index, y=hist['RSI'], name='RSI', line=dict(color='#af7ac5', width=2), showlegend=False), row=3, col=1)
+            fig.add_hline(y=70, line_dash="dash", line_color="rgba(255,0,0,0.5)", row=3, col=1)
+            fig.add_hline(y=30, line_dash="dash", line_color="rgba(0,255,0,0.5)", row=3, col=1)
+
+            # 4. MACD (Row 4)
+            fig.add_trace(go.Scatter(x=hist.index, y=hist['MACD'], name='MACD', line=dict(color='#3498db', width=1.5), showlegend=False), row=4, col=1)
+            fig.add_trace(go.Scatter(x=hist.index, y=hist['Signal_Line'], name='Signal', line=dict(color='#e67e22', width=1.5), showlegend=False), row=4, col=1)
+            
+            macd_hist_colors = ['red' if val < 0 else 'green' for val in (hist['MACD'] - hist['Signal_Line'])]
+            fig.add_trace(go.Bar(x=hist.index, y=hist['MACD'] - hist['Signal_Line'], name='MACD Hist', marker_color=macd_hist_colors, showlegend=False), row=4, col=1)
+
+            # Add Trade Levels to Main Chart
             if levels:
                 if 'TP' in levels:
-                    fig.add_hline(y=levels['TP'], line_dash="dash", line_color="green", annotation_text="TP", annotation_position="top right")
+                    fig.add_hline(y=levels['TP'], line_dash="dash", line_color="#2ecc71", annotation_text="Target", row=1, col=1)
                 if 'SL' in levels:
-                    fig.add_hline(y=levels['SL'], line_dash="dash", line_color="red", annotation_text="SL", annotation_position="bottom right")
+                    fig.add_hline(y=levels['SL'], line_dash="dash", line_color="#e74c3c", annotation_text="Stop Loss", row=1, col=1)
                 if 'Entry' in levels:
-                    fig.add_hline(y=levels['Entry'], line_dash="dot", line_color="white", annotation_text="Entry")
+                    fig.add_hline(y=levels['Entry'], line_dash="dot", line_color="#ffffff", annotation_text="Entry", row=1, col=1)
                 
-                # Add Support & Resistance zones (Reversal areas)
+                # Add Support & Resistance zones
                 if 'Resistance' in levels and not pd.isna(levels['Resistance']):
-                    fig.add_hline(y=levels['Resistance'], line_dash="solid", line_color="rgba(255,0,0,0.3)", line_width=2, annotation_text="مقاومة (انعكاس)")
+                    fig.add_hline(y=levels['Resistance'], line_dash="solid", line_color="rgba(231, 76, 60, 0.2)", line_width=3, annotation_text="Resistance", row=1, col=1)
                 if 'Support' in levels and not pd.isna(levels['Support']):
-                    fig.add_hline(y=levels['Support'], line_dash="solid", line_color="rgba(0,255,0,0.3)", line_width=2, annotation_text="دعم (ارتداد)")
+                    fig.add_hline(y=levels['Support'], line_dash="solid", line_color="rgba(46, 204, 113, 0.2)", line_width=3, annotation_text="Support", row=1, col=1)
 
             fig.update_layout(
-                title=f'تحليل {ticker} - {tf_title}',
-                yaxis_title='السعر',
                 template="plotly_dark",
-                height=600,
-                margin=dict(l=15, r=15, t=50, b=15),
+                height=900,
+                margin=dict(l=50, r=50, t=50, b=50),
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='white', size=13),
+                font=dict(color='white', size=12),
                 xaxis_rangeslider_visible=False,
-                xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)'),
-                yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)', tickformat=".2f")
+                showlegend=True,
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
             
+            # Update Y axes for better scaling
+            fig.update_yaxes(title_text="Price", row=1, col=1)
+            fig.update_yaxes(title_text="Volume", row=2, col=1)
+            fig.update_yaxes(title_text="RSI", row=3, col=1, range=[0, 100])
+            fig.update_yaxes(title_text="MACD", row=4, col=1)
+
             chart_json = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
             
             # Format Trade Levels in a Unified Table
@@ -701,7 +817,7 @@ def chat():
             
             return {"response": response, "chart": chart_json}
             
-        elif "توقع" in user_message or "ذكاء" in user_message or "مستشار" in user_message or "رأيك" in user_message:
+        elif any(kw in user_message for kw in ai_keywords):
              # AI Analysis
             hist = engine.get_market_data(period=period, interval=timeframe)
             if hist.empty:
@@ -715,7 +831,7 @@ def chat():
             analyzer = AIAnalyzer(api_key=api_key) 
             response = analyzer.get_ai_insight(ticker, engine.info, hist, reason, tf_title=tf_title, timeframe_val=timeframe, lang=lang)
             
-        elif "توصية" in user_message and ticker:
+        elif any(kw in user_message for kw in signal_keywords) and ticker:
             # New Options Trade Signal Card
             hist = engine.get_market_data(period=period, interval=timeframe)
             if hist.empty:
@@ -782,7 +898,7 @@ def chat():
                     response += "\n⚠️ *هذه ليست نصيحة مالية، بل تحليل فني آلي.*"
                     
                     
-        elif any(kw in user_message for kw in ["عقود الخيارات", "عقود", "خيارات", "أوبشن", "اوبشن"]):
+        elif any(kw in user_message for kw in options_keywords):
             if not ticker:
                  return {"response": "الرجاء تحديد اسم السهم (مثل TSLA) لتحليل عقود الخيارات الخاصة به."}
                  
@@ -829,7 +945,7 @@ def chat():
             </div>
             """
 
-        elif "مرحبا" in user_message or "هلا" in user_message or "hello" in user_message.lower() or "hi" in user_message.lower():
+        elif is_greeting:
              response = f"{t['welcome_msg']} {session['username']}! {t['bot_intro']}"
              
         else:
@@ -944,6 +1060,18 @@ def chat():
         response = f"حدث خطأ أثناء تحليل {ticker}: {str(e)}"
 
     return {"response": response}
+
+@app.route('/api/market_status')
+def api_market_status():
+    """Returns current US market status for the dashboard."""
+    is_open, msg = get_market_status()
+    sentiment, change = StockEngine.get_global_sentiment()
+    return {
+        "is_open": is_open, 
+        "message": msg,
+        "sentiment": sentiment,
+        "sentiment_change": round(change, 2)
+    }
 
 @app.route('/api/broadcast', methods=['GET', 'POST'])
 def broadcast():

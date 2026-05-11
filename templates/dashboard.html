@@ -704,6 +704,76 @@
                 transform: scale(1);
             }
         }
+
+        /* Stock Card Buttons */
+        .stock-card-btn {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(212,175,55,0.2);
+            border-radius: 10px;
+            padding: 10px 5px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+        .stock-card-btn:hover {
+            background: rgba(212,175,55,0.12);
+            border-color: var(--primary-gold);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(212,175,55,0.15);
+        }
+        .stock-symbol {
+            color: var(--primary-gold);
+            font-weight: 800;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+        .stock-name {
+            color: #888;
+            font-size: 0.7rem;
+        }
+
+        /* Quick Action Categories */
+        .qa-label {
+            color: #666;
+            font-size: 0.78rem;
+            font-weight: 600;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 0 8px;
+        }
+        .pill-ai { border-color: rgba(155,89,182,0.4) !important; }
+        .pill-ai:hover { background: rgba(155,89,182,0.15) !important; color: #9b59b6 !important; border-color: #9b59b6 !important; }
+        .pill-scan { border-color: rgba(46,204,113,0.4) !important; }
+        .pill-scan:hover { background: rgba(46,204,113,0.15) !important; color: #2ecc71 !important; border-color: #2ecc71 !important; }
+        .pill-signal { border-color: rgba(52,152,219,0.4) !important; }
+        .pill-signal:hover { background: rgba(52,152,219,0.15) !important; color: #3498db !important; border-color: #3498db !important; }
+        .pill-options { border-color: rgba(241,196,15,0.4) !important; }
+        .pill-options:hover { background: rgba(241,196,15,0.15) !important; color: #f1c40f !important; border-color: #f1c40f !important; }
+
+        /* Market Status Banner */
+        .market-status-banner {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            animation: fadeIn 0.5s ease;
+        }
+        .market-open { background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.3); color: #2ecc71; }
+        .market-closed { background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3); color: #e74c3c; }
+
+        @media (max-width: 768px) {
+            .stock-card-btn { padding: 8px 3px; }
+            .stock-symbol { font-size: 0.75rem; }
+        }
     </style>
 </head>
 
@@ -869,9 +939,19 @@
                         <i class="fas fa-bullhorn"></i> <span id="announcement-count">1</span> {{ t.broadcast_title }}
                     </div>
                 </div>
-                <div class="status-badge">
-                    <span class="status-dot"></span>
-                    <span>{{ t.system_active }}</span>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="status-badge">
+                        <span class="status-dot"></span>
+                        <span>{{ t.system_active }}</span>
+                    </div>
+                    <div id="market-status-badge" class="market-status-banner market-closed" style="display: none;">
+                        <i class="fas fa-clock"></i>
+                        <span id="market-status-text"></span>
+                    </div>
+                    <div id="market-sentiment-badge" class="market-status-banner" style="display: none;">
+                        <i id="sentiment-icon" class="fas fa-chart-line"></i>
+                        <span id="market-sentiment-text"></span>
+                    </div>
                 </div>
             </header>
 
@@ -885,20 +965,104 @@
                     </div>
 
                     <div class="chat-messages" id="chat-messages">
-                        <div class="message-bubble message-bot">
-                            {{ t.welcome_msg }}<br><br>
-                            {{ t.bot_intro }}
+                        <!-- Welcome Guide -->
+                        <div class="message-bubble message-bot" id="welcome-guide">
+                            <div style="margin-bottom: 15px;">
+                                <h3 style="color: var(--primary-gold); margin: 0 0 8px 0; font-size: 1.15rem;">
+                                    <i class="fas fa-hand-sparkles"></i> {{ t.welcome_msg }}
+                                </h3>
+                                <p style="color: #ccc; font-size: 0.9rem; line-height: 1.7;">{{ t.bot_intro }}</p>
+                            </div>
+
+                            <!-- How to Use Guide -->
+                            <div style="background: rgba(212,175,55,0.08); border: 1px solid rgba(212,175,55,0.15); border-radius: 12px; padding: 15px; margin-bottom: 15px;">
+                                <h4 style="color: var(--primary-gold); margin: 0 0 12px 0; font-size: 0.95rem;">
+                                    <i class="fas fa-lightbulb"></i> {{ t.how_to_use }}
+                                </h4>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                    <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; font-size: 0.82rem;">
+                                        <span style="color: var(--primary-gold);">1.</span> {{ t.guide_step1 }}
+                                    </div>
+                                    <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; font-size: 0.82rem;">
+                                        <span style="color: var(--primary-gold);">2.</span> {{ t.guide_step2 }}
+                                    </div>
+                                    <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; font-size: 0.82rem;">
+                                        <span style="color: var(--primary-gold);">3.</span> {{ t.guide_step3 }}
+                                    </div>
+                                    <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; font-size: 0.82rem;">
+                                        <span style="color: var(--primary-gold);">4.</span> {{ t.guide_step4 }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Popular Stocks Grid -->
+                            <div style="margin-bottom: 15px;">
+                                <h4 style="color: #fff; margin: 0 0 10px 0; font-size: 0.95rem;">
+                                    <i class="fas fa-fire" style="color: #ff6b35;"></i> {{ t.popular_stocks }}
+                                </h4>
+                                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
+                                    <button onclick="sendQuickMessage('AAPL')" class="stock-card-btn">
+                                        <span class="stock-symbol">AAPL</span>
+                                        <span class="stock-name">Apple</span>
+                                    </button>
+                                    <button onclick="sendQuickMessage('TSLA')" class="stock-card-btn">
+                                        <span class="stock-symbol">TSLA</span>
+                                        <span class="stock-name">Tesla</span>
+                                    </button>
+                                    <button onclick="sendQuickMessage('NVDA')" class="stock-card-btn">
+                                        <span class="stock-symbol">NVDA</span>
+                                        <span class="stock-name">Nvidia</span>
+                                    </button>
+                                    <button onclick="sendQuickMessage('MSFT')" class="stock-card-btn">
+                                        <span class="stock-symbol">MSFT</span>
+                                        <span class="stock-name">Microsoft</span>
+                                    </button>
+                                    <button onclick="sendQuickMessage('META')" class="stock-card-btn">
+                                        <span class="stock-symbol">META</span>
+                                        <span class="stock-name">Meta</span>
+                                    </button>
+                                    <button onclick="sendQuickMessage('AMZN')" class="stock-card-btn">
+                                        <span class="stock-symbol">AMZN</span>
+                                        <span class="stock-name">Amazon</span>
+                                    </button>
+                                    <button onclick="sendQuickMessage('GOOG')" class="stock-card-btn">
+                                        <span class="stock-symbol">GOOG</span>
+                                        <span class="stock-name">Google</span>
+                                    </button>
+                                    <button onclick="sendQuickMessage('AMD')" class="stock-card-btn">
+                                        <span class="stock-symbol">AMD</span>
+                                        <span class="stock-name">AMD</span>
+                                    </button>
+                                    <button onclick="sendQuickMessage('NDQ')" class="stock-card-btn" style="border-color: rgba(52,152,219,0.4);">
+                                        <span class="stock-symbol" style="color: #3498db;">NDQ</span>
+                                        <span class="stock-name">{{ t.nasdaq }}</span>
+                                    </button>
+                                    <button onclick="sendQuickMessage('SPY')" class="stock-card-btn" style="border-color: rgba(46,204,113,0.4);">
+                                        <span class="stock-symbol" style="color: #2ecc71;">SPY</span>
+                                        <span class="stock-name">S&P 500</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
+                    <!-- Quick Actions - Categorized -->
                     <div class="quick-actions-wrapper" style="margin-bottom: 10px;">
-                        <div class="quick-actions">
-                            <button onclick="sendQuickMessage('AAPL')" class="action-pill"><i
-                                    class="fas fa-chart-pie"></i> {{ t.comprehensive_report }} AAPL</button>
-                            <button onclick="sendQuickMessage('{{ t.technical_analysis }}')" class="action-pill"><i
-                                    class="fas fa-chart-line"></i> {{ t.technical_analysis }}</button>
-                            <button onclick="sendQuickMessage('{{ t.positive_stocks }}')" class="action-pill"><i
-                                    class="fas fa-search-dollar"></i> {{ t.positive_stocks }}</button>
+                        <div class="quick-actions-categories">
+                            <!-- Analysis Actions -->
+                            <div class="quick-actions" style="margin-bottom: 6px;">
+                                <span class="qa-label"><i class="fas fa-chart-line"></i> {{ t.analysis }}:</span>
+                                <button onclick="sendQuickMessage('تحليل فني TSLA')" class="action-pill"><i class="fas fa-chart-bar"></i> {{ t.technical_analysis }} TSLA</button>
+                                <button onclick="sendQuickMessage('تحليل أساسي AAPL')" class="action-pill"><i class="fas fa-building"></i> {{ t.fundamental }} AAPL</button>
+                                <button onclick="sendQuickMessage('توقع NVDA')" class="action-pill pill-ai"><i class="fas fa-brain"></i> {{ t.ai_prediction }} NVDA</button>
+                            </div>
+                            <!-- Trading Actions -->
+                            <div class="quick-actions">
+                                <span class="qa-label"><i class="fas fa-bolt"></i> {{ t.trading }}:</span>
+                                <button onclick="sendQuickMessage('عطني سهم')" class="action-pill pill-scan"><i class="fas fa-search-dollar"></i> {{ t.scan_market }}</button>
+                                <button onclick="sendQuickMessage('توصية TSLA')" class="action-pill pill-signal"><i class="fas fa-signal"></i> {{ t.trade_signal }} TSLA</button>
+                                <button onclick="sendQuickMessage('خيارات AAPL')" class="action-pill pill-options"><i class="fas fa-layer-group"></i> {{ t.options }} AAPL</button>
+                            </div>
                         </div>
                     </div>
 
@@ -910,7 +1074,7 @@
                             <option value="1d">{{ t.timeframe_1d }}</option>
                             <option value="1mo">{{ t.timeframe_1mo }}</option>
                         </select>
-                        <input type="text" id="user-input" placeholder="..."
+                        <input type="text" id="user-input" placeholder="{{ t.input_placeholder }}"
                             autocomplete="off">
                         <button onclick="sendMessage()" class="send-btn" id="send-btn">
                             <i class="fas fa-paper-plane"></i>
@@ -929,7 +1093,7 @@
                             <i class="fas fa-chart-area"></i>
                             <h3>الرؤية البصرية للسعر</h3>
                         </div>
-                        <div id="plotly-chart" style="width: 100%; height: 600px;"></div>
+                        <div id="plotly-chart" style="width: 100%; height: 900px;"></div>
                     </div>
 
                 </div>
@@ -1380,11 +1544,56 @@
             } catch (e) {}
         }
 
+        // Market Status & Sentiment Check
+        async function checkMarketStatus() {
+            try {
+                const response = await fetch('/api/market_status');
+                const data = await response.json();
+                
+                // Status Badge
+                const statusBadge = document.getElementById('market-status-badge');
+                const statusText = document.getElementById('market-status-text');
+                statusBadge.style.display = 'flex';
+                if (data.is_open) {
+                    statusBadge.className = 'market-status-banner market-open';
+                    statusText.textContent = '{{ t.market_open }}';
+                } else {
+                    statusBadge.className = 'market-status-banner market-closed';
+                    statusText.textContent = '{{ t.market_closed }}';
+                }
+
+                // Sentiment Badge
+                const sentBadge = document.getElementById('market-sentiment-badge');
+                const sentText = document.getElementById('market-sentiment-text');
+                const sentIcon = document.getElementById('sentiment-icon');
+                sentBadge.style.display = 'flex';
+                
+                if (data.sentiment === 'Bullish') {
+                    sentBadge.className = 'market-status-banner market-open';
+                    sentText.textContent = `تفاؤل بالسوق (${data.sentiment_change}%)`;
+                    sentIcon.className = 'fas fa-arrow-trend-up';
+                } else if (data.sentiment === 'Bearish') {
+                    sentBadge.className = 'market-status-banner market-closed';
+                    sentText.textContent = `تشاؤم بالسوق (${data.sentiment_change}%)`;
+                    sentIcon.className = 'fas fa-arrow-trend-down';
+                } else {
+                    sentBadge.className = 'market-status-banner';
+                    sentBadge.style.background = 'rgba(255,255,255,0.05)';
+                    sentBadge.style.color = '#888';
+                    sentText.textContent = `سوق هادئ (${data.sentiment_change}%)`;
+                    sentIcon.className = 'fas fa-minus';
+                }
+
+            } catch (e) {}
+        }
+
         // Initial checks
         checkAnnouncements();
         loadTickets();
+        checkMarketStatus();
         setInterval(checkAnnouncements, 60000); // Check every minute
         setInterval(loadTickets, 30000); // Check tickets every 30s
+        setInterval(checkMarketStatus, 300000); // Check market every 5 min
     </script>
 </body>
 

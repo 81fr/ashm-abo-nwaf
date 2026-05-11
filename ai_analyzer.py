@@ -2,77 +2,81 @@ import os
 from openai import OpenAI
 from datetime import datetime
 
+BEGINNER_SUMMARY_HTML = """
+<div style="background: linear-gradient(135deg, #1a1a1a, #0a0a0a); border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-family: 'Cairo', sans-serif;" dir="rtl">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="color: #fff; margin: 0; font-size: 1.2rem;"><i class="fas fa-brain" style="color: #d4af37;"></i> ملخص المستشار للمبتدئين</h3>
+        <span style="background: rgba(212, 175, 55, 0.1); color: #d4af37; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; border: 1px solid rgba(212, 175, 55, 0.2);">{ticker}</span>
+    </div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
+            <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">القرار النهائي</div>
+            <div style="font-size: 1.1rem; font-weight: 800; color: {verdict_color};">{verdict_text}</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
+            <div style="color: #888; font-size: 0.8rem; margin-bottom: 5px;">مستوى المخاطرة</div>
+            <div style="font-size: 1.1rem; font-weight: 800; color: {risk_color};">{risk_text}</div>
+        </div>
+    </div>
+    
+    <div style="background: rgba(212, 175, 55, 0.05); border-right: 4px solid #d4af37; padding: 12px; border-radius: 4px 10px 10px 4px; color: #eee; line-height: 1.6; font-size: 0.95rem;">
+        <strong>💡 الخلاصة:</strong> {simple_reason}
+    </div>
+</div>
+"""
+
 UNIFIED_TABLE_HTML = """
-<table style="width: 100%; border-collapse: collapse; margin-top: 15px; background-color: #222; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.3); text-align: right;" dir="rtl">
+<table style="width: 100%; border-collapse: collapse; background-color: #111; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.3); text-align: right; border: 1px solid #333;" dir="rtl">
     <thead>
         <tr style="background: linear-gradient(135deg, #d4af37, #aa8529); color: #000;">
-            <th colspan="2" style="padding: 10px; font-size: 1.05rem; text-align: center;">🎯 التحليل الشامل: {ticker}</th>
+            <th colspan="2" style="padding: 12px; font-size: 1.1rem; text-align: center;"><i class="fas fa-list-ul"></i> البيانات التفصيلية: {ticker}</th>
         </tr>
     </thead>
     <tbody>
-        <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; width: 40%; color: #d4af37;">الشركة / السهم</td>
-            <td style="padding: 10px;">(Company & Sector)</td>
+        <tr style="border-bottom: 1px solid #222;">
+            <td style="padding: 12px; font-weight: bold; width: 45%; color: #d4af37; background: rgba(212,175,55,0.02);">الشركة والقطاع</td>
+            <td style="padding: 12px; color: #fff;">(Company & Sector)</td>
         </tr>
-        <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">السعر الحالي</td>
-            <td style="padding: 10px;">{current_price}</td>
+        <tr style="border-bottom: 1px solid #222;">
+            <td style="padding: 12px; font-weight: bold; color: #d4af37; background: rgba(212,175,55,0.02);">السعر الحالي</td>
+            <td style="padding: 12px; color: #fff; font-weight: bold;">{current_price}</td>
         </tr>
-        <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">إشارة التداول (بيع/شراء)</td>
-            <td style="padding: 10px; font-weight: bold; color: #fff;">(Buy/Sell Signal)</td>
+        <tr style="border-bottom: 1px solid #222;">
+            <td style="padding: 12px; font-weight: bold; color: #d4af37; background: rgba(212,175,55,0.02);">الإشارة الذكية</td>
+            <td style="padding: 12px; font-weight: bold;">(Buy/Sell Signal)</td>
         </tr>
-        <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">أمر التنفيذ (سعر الدخول)</td>
-            <td style="padding: 10px; color: #3498db; font-weight: bold;">(Entry/Limit Price)</td>
+        <tr style="border-bottom: 1px solid #222;">
+            <td style="padding: 12px; font-weight: bold; color: #d4af37; background: rgba(212,175,55,0.02);">سعر الدخول (أفضل سعر)</td>
+            <td style="padding: 12px; color: #3498db; font-weight: bold;">(Entry Price)</td>
         </tr>
-        <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">سعر الخروج (الهدف المقترح)</td>
-            <td style="padding: 10px; color: #2ecc71; font-weight: bold;">(Take Profit - TP Price)</td>
+        <tr style="border-bottom: 1px solid #222;">
+            <td style="padding: 12px; font-weight: bold; color: #d4af37; background: rgba(212,175,55,0.02);">الهدف (سعر البيع)</td>
+            <td style="padding: 12px; color: #2ecc71; font-weight: bold;">(Take Profit)</td>
         </tr>
-        <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">وقف الخسارة (SL)</td>
-            <td style="padding: 10px; color: #ff4d4d; font-weight: bold;">(Stop Loss Price)</td>
+        <tr style="border-bottom: 1px solid #222;">
+            <td style="padding: 12px; font-weight: bold; color: #d4af37; background: rgba(212,175,55,0.02);">وقف الخسارة (حماية)</td>
+            <td style="padding: 12px; color: #ff4d4d; font-weight: bold;">(Stop Loss)</td>
         </tr>
-        <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">الربح المتوقع (%)</td>
-            <td style="padding: 10px; font-weight: bold;">(Expected Profit %)</td>
+        <tr style="border-bottom: 1px solid #222;">
+            <td style="padding: 12px; font-weight: bold; color: #d4af37; background: rgba(212,175,55,0.02);">الربح المتوقع</td>
+            <td style="padding: 12px; color: #fff;">(Expected Profit %)</td>
         </tr>
-        <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">منطقة الارتداد (دعم)</td>
-            <td style="padding: 10px; color: #3498db; font-weight: bold;">{support}</td>
+        <tr style="border-bottom: 1px solid #222;">
+            <td style="padding: 12px; font-weight: bold; color: #d4af37; background: rgba(212,175,55,0.02);">مدة الاحتفاظ (أقصى وقت)</td>
+            <td style="padding: 12px; color: #f1c40f; font-weight: bold;">(Max Hold Time)</td>
         </tr>
-        <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">منطقة الانعكاس (مقاومة)</td>
-            <td style="padding: 10px; color: #e74c3c; font-weight: bold;">{resistance}</td>
+        <tr style="border-bottom: 1px solid #222;">
+            <td style="padding: 12px; font-weight: bold; color: #d4af37; background: rgba(212,175,55,0.02);">مناطق الدعم والمقاومة</td>
+            <td style="padding: 12px; color: #ccc; font-size: 0.9rem;">{support} - {resistance}</td>
         </tr>
-        <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">نسبة المخاطرة للمكافأة (R/R)</td>
-            <td style="padding: 10px;">(Risk % / Reward-to-Risk)</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">وقت الدخول المقترح</td>
-            <td style="padding: 10px;">(Suggested Entry Time)</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">وقت الخروج المقترح (أقصى مدة)</td>
-            <td style="padding: 10px;">(Suggested Exit Time / Max Hold)</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">السترايك (لعقود الأوبشن)</td>
-            <td style="padding: 10px;">(Option Strike or 'غير مطبق للأسهم')</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">المقترحات الاستراتيجية</td>
-            <td style="padding: 10px;">(Strategic Suggestions / Best Practices)</td>
-        </tr>
-        <tr style="border-bottom: 1px solid #444;">
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">الأساسيات ونسبة التطهير</td>
-            <td style="padding: 10px; color: #f39c12;">(Fundamentals & Purification)</td>
+        <tr style="border-bottom: 1px solid #222;">
+            <td style="padding: 12px; font-weight: bold; color: #d4af37; background: rgba(212,175,55,0.02);">الوضع الشرعي</td>
+            <td style="padding: 12px;">(Shariah Status)</td>
         </tr>
         <tr>
-            <td style="padding: 10px; font-weight: bold; color: #d4af37;">وقت إصدار التحليل</td>
-            <td style="padding: 10px;">{generation_time}</td>
+            <td style="padding: 12px; font-weight: bold; color: #d4af37; background: rgba(212,175,55,0.02);">نصيحة للمبتدئين</td>
+            <td style="padding: 12px; color: #aaa; font-style: italic; font-size: 0.85rem;">(Pro Tip)</td>
         </tr>
     </tbody>
 </table>
@@ -203,9 +207,22 @@ class AIAnalyzer:
         RSI: {rsi:.2f}, MACD: {macd:.2f}
         Shariah Status: {shariah_status}
 
-        Provide a professional investment analysis in English.
+        You are a top-tier financial advisor for beginners. 
         CRITICAL: For 'Suggested Exit Time / Max Hold', it {hold_instruction}.
-        You MUST return ONLY the following HTML table format, filled with data in English.
+        
+        You MUST return TWO parts in your response:
+        1. The BEGINNER_SUMMARY_HTML populated with:
+           - verdict_text: (Strong Buy, Buy, Wait, or Avoid)
+           - verdict_color: (#2ecc71 for buy, #f1c40f for wait, #e74c3c for avoid)
+           - risk_text: (Low, Moderate, or High)
+           - risk_color: (#2ecc71 for low, #f1c40f for moderate, #e74c3c for high)
+           - simple_reason: A one-sentence simple explanation for a beginner.
+        2. The Detailed HTML Table filled with data.
+        
+        BEGINNER_SUMMARY_HTML Template:
+        {BEGINNER_SUMMARY_HTML}
+        
+        Detailed Table Template:
         {table_html}
         """
 
@@ -215,9 +232,22 @@ class AIAnalyzer:
         RSI: {rsi:.2f}, MACD: {macd:.2f}
         الوضع الشرعي: {shariah_status}
 
-        قدم توصية استثمارية احترافية باللغة العربية.
-        CRITICAL: للحقل 'وقت الخروج المقترح (أقصى مدة)'، {hold_instruction}.
-        يجب أن تعيد فقط جدول HTML التالي، مملوءاً بالبيانات باللغة العربية.
+        أنت مستشار مالي خبير يوجه المبتدئين. 
+        تنبيه هام: للحقل 'وقت الخروج المقترح (أقصى مدة)'، {hold_instruction}.
+        
+        يجب أن تعيد جزئين في ردك:
+        1. قالب BEGINNER_SUMMARY_HTML مملوءاً بالقيم التالية:
+           - verdict_text: (شراء قوي، شراء، انتظار، أو تجنب)
+           - verdict_color: (#2ecc71 للشراء، #f1c40f للانتظار، #e74c3c للتجنب)
+           - risk_text: (منخفضة، متوسطة، أو عالية)
+           - risk_color: (#2ecc71 لمنخفضة، #f1c40f لمتوسطة، #e74c3c لعالية)
+           - simple_reason: جملة واحدة بسيطة تشرح السبب لمبتدئ لا يفهم في الأسهم.
+        2. جدول البيانات التفصيلي HTML مملوءاً بالبيانات الفنية.
+        
+        قالب الملخص للمبتدئين:
+        {BEGINNER_SUMMARY_HTML}
+        
+        قالب الجدول التفصيلي:
         {table_html}
         """
 
@@ -228,7 +258,7 @@ class AIAnalyzer:
                 response = self.client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
                     messages=[
-                        {"role": "system", "content": f"You are an expert financial advisor. Provide analysis in {'English' if lang == 'en' else 'Arabic'} within the HTML template only."},
+                        {"role": "system", "content": f"You are a master financial advisor who simplifies complex data for beginners. Return ONLY the two HTML blocks (Summary and Table)."},
                         {"role": "user", "content": prompt}
                     ]
                 )

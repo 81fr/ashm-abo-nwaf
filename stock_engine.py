@@ -55,14 +55,15 @@ class StockEngine:
         df['Signal_Line'] = df['MACD'].ewm(span=9, adjust=False).mean()
         
         # Support and Resistance (Reversal Zones)
-        # Using a simple rolling window to find local minima and maxima
         window = 20
-        df['Resistance'] = df['High'].rolling(window=window, center=False).max()
-        df['Support'] = df['Low'].rolling(window=window, center=False).min()
-        
-        # Shift back slightly so today's extreme doesn't immediately become the line if it's new
-        df['Resistance'] = df['Resistance'].shift(1)
-        df['Support'] = df['Support'].shift(1)
+        df['Resistance'] = df['High'].rolling(window=window, center=False).max().shift(1)
+        df['Support'] = df['Low'].rolling(window=window, center=False).min().shift(1)
+
+        # Bollinger Bands
+        df['BB_Middle'] = df['Close'].rolling(window=20).mean()
+        df['BB_Std'] = df['Close'].rolling(window=20).std()
+        df['BB_Upper'] = df['BB_Middle'] + (df['BB_Std'] * 2)
+        df['BB_Lower'] = df['BB_Middle'] - (df['BB_Std'] * 2)
         
         return df
 
@@ -267,6 +268,28 @@ class StockEngine:
             print(f"Error fetching options for {self.original_ticker}: {e}")
             return None
 
+    @staticmethod
+    def get_global_sentiment():
+        """Returns a simple market sentiment based on S&P 500 performance."""
+        try:
+            spy = yf.Ticker("^GSPC")
+            data = spy.history(period="2d")
+            if len(data) < 2:
+                return "Neutral", 0
+            
+            last_close = data['Close'].iloc[-1]
+            prev_close = data['Close'].iloc[-2]
+            change_pct = ((last_close - prev_close) / prev_close) * 100
+            
+            if change_pct > 0.5:
+                return "Bullish", change_pct
+            elif change_pct < -0.5:
+                return "Bearish", change_pct
+            else:
+                return "Neutral", change_pct
+        except:
+            return "Neutral", 0
+
 if __name__ == "__main__":
     # Test with a known stock
     engine = StockEngine("AAPL")
@@ -279,3 +302,5 @@ if __name__ == "__main__":
     print(f"Shariah Status: {reason}")
     print(f"Technical Recommendation: {rec}")
     print(f"Current Price: {hist['Close'].iloc[-1]:.2f}")
+    sentiment, change = StockEngine.get_global_sentiment()
+    print(f"Market Sentiment: {sentiment} ({change:.2f}%)")
