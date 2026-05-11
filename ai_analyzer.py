@@ -86,6 +86,13 @@ UNIFIED_TABLE_HTML = """
             <td style="padding: 12px; font-weight: bold; color: #d4af37; background: rgba(212,175,55,0.02);">نصيحة للمبتدئين</td>
             <td style="padding: 12px; color: #aaa; font-style: italic; font-size: 0.85rem;">(Pro Tip)</td>
         </tr>
+        <tr>
+            <td colspan="2" style="padding: 15px; text-align: center; background: rgba(255,255,255,0.02);">
+                <button onclick="saveToPortfolio('{ticker_only}')" class="btn-primary" style="background: var(--primary-gold); color: #000; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: all 0.3s;">
+                    <i class="fas fa-plus-circle"></i> حفظ الصفقة في محفظتي (تجريبي)
+                </button>
+            </td>
+        </tr>
     </tbody>
 </table>
 """
@@ -206,6 +213,7 @@ class AIAnalyzer:
             current_price=f"${current_price:.2f}",
             support=f"${support:.2f}",
             resistance=f"${resistance:.2f}",
+            ticker_only=ticker,
             generation_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         )
 

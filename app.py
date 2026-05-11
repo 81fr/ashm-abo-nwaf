@@ -13,6 +13,7 @@ load_dotenv(override=True)
 from stock_engine import StockEngine
 from ai_analyzer import AIAnalyzer
 import json
+import yfinance as yf
 import plotly
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
@@ -1220,6 +1221,103 @@ def ticket_rate():
         save_tickets(tickets)
         return {"success": True}
     return {"error": "Unauthorized or not found"}, 404
+
+# --- Simulated Portfolio Logic ---
+PORTFOLIO_FILE = 'portfolio.json'
+
+def load_portfolio():
+    if not os.path.exists(PORTFOLIO_FILE):
+        return {}
+    try:
+        with open(PORTFOLIO_FILE, 'r') as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_portfolio(data):
+    with open(PORTFOLIO_FILE, 'w') as f:
+        json.dump(data, f, indent=4)
+
+@app.route('/api/portfolio/add', methods=['POST'])
+def add_to_portfolio():
+    if 'username' not in session:
+        return {"success": False, "message": "Login required"}
+    
+    data = request.json
+    username = session['username']
+    
+    portfolio = load_portfolio()
+    if username not in portfolio:
+        portfolio[username] = []
+    
+    new_trade = {
+        "id": secrets.token_hex(4),
+        "ticker": data.get('ticker'),
+        "entry_price": float(data.get('entry_price', 0)),
+        "sl": float(data.get('sl', 0)),
+        "tp": float(data.get('tp', 0)),
+        "shares": int(data.get('shares', 1)),
+        "date": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        "status": "open",
+        "close_price": None,
+        "pnl": 0
+    }
+    
+    portfolio[username].append(new_trade)
+    save_portfolio(portfolio)
+    return {"success": True, "message": "تمت إضافة الصفقة للمحفظة"}
+
+@app.route('/api/portfolio')
+def get_portfolio():
+    if 'username' not in session:
+        return {"success": False}
+    
+    username = session['username']
+    portfolio = load_portfolio()
+    user_trades = portfolio.get(username, [])
+    
+    # Update live prices for open trades
+    for trade in user_trades:
+        if trade['status'] == 'open':
+            try:
+                # Optimized: ideally batch this, but for simulation 1-by-1 is okay for now
+                ticker = yf.Ticker(trade['ticker'])
+                current = ticker.fast_info['lastPrice']
+                trade['current_price'] = round(current, 2)
+                trade['pnl'] = round((current - trade['entry_price']) * trade['shares'], 2)
+                trade['pnl_pct'] = round(((current - trade['entry_price']) / trade['entry_price']) * 100, 2)
+            except:
+                trade['current_price'] = trade['entry_price']
+                trade['pnl'] = 0
+                trade['pnl_pct'] = 0
+
+    return {"success": True, "trades": user_trades}
+
+@app.route('/api/portfolio/close', methods=['POST'])
+def close_trade():
+    if 'username' not in session:
+        return {"success": False}
+    
+    trade_id = request.json.get('id')
+    username = session['username']
+    portfolio = load_portfolio()
+    
+    if username in portfolio:
+        for trade in portfolio[username]:
+            if trade['id'] == trade_id:
+                try:
+                    ticker = yf.Ticker(trade['ticker'])
+                    current = ticker.fast_info['lastPrice']
+                    trade['status'] = 'closed'
+                    trade['close_price'] = current
+                    trade['pnl'] = round((current - trade['entry_price']) * trade['shares'], 2)
+                except:
+                    trade['status'] = 'closed'
+                    trade['close_price'] = trade['entry_price']
+                break
+        save_portfolio(portfolio)
+    
+    return {"success": True}
 
 if __name__ == '__main__':
     # Using host='0.0.0.0' to make it accessible externally if needed

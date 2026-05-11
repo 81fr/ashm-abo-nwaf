@@ -13,3 +13,4 @@ cloudflared.exe
 *.json
 !users.json
 !activity_log.json
+!portfolio.json

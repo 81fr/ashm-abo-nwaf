@@ -1006,6 +1006,37 @@
                     </div>
                 </div>
 
+                <!-- My Portfolio Panel -->
+                <div class="panel-card" style="grid-column: span 3;">
+                    <div class="panel-header">
+                        <i class="fas fa-briefcase"></i>
+                        <h3>محفظتي التجريبية (Live Tracker)</h3>
+                        <div style="margin-right: auto;">
+                            <span id="portfolio-total-pnl" style="font-weight: bold; font-size: 1.1rem;">$0.00</span>
+                        </div>
+                    </div>
+                    <div style="padding: 0; overflow-x: auto;">
+                        <table class="ai-table" style="margin-top: 0; border-radius: 0;">
+                            <thead>
+                                <tr>
+                                    <th>السهم</th>
+                                    <th>سعر الدخول</th>
+                                    <th>السعر الحالي</th>
+                                    <th>الكمية</th>
+                                    <th>الربح/الخسارة ($)</th>
+                                    <th>الربح/الخسارة (%)</th>
+                                    <th>الإجراء</th>
+                                </tr>
+                            </thead>
+                            <tbody id="portfolio-body">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 30px; color: #888;">لا توجد صفقات مفتوحة حالياً. حلل سهم واحفظه لتبدأ التتبع.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- AI Chat Interface -->
                 <div class="panel-card chat-container" style="grid-column: span 2;">
                     <div class="panel-header">
@@ -1670,10 +1701,107 @@
         loadTickets();
         checkMarketStatus();
         checkMorningBriefing();
+        loadPortfolio();
 
         setInterval(checkAnnouncements, 60000); // Check every minute
         setInterval(loadTickets, 30000); // Check tickets every 30s
         setInterval(checkMarketStatus, 300000); // Check market every 5 min
+        setInterval(loadPortfolio, 60000); // Update portfolio every minute
+
+        // Portfolio Logic
+        async function saveToPortfolio(ticker) {
+            // Find data from the last AI table
+            const table = document.querySelector('.ai-table');
+            if (!table) return;
+            
+            const rows = table.querySelectorAll('tr');
+            let entry = 0, sl = 0, tp = 0;
+            
+            rows.forEach(r => {
+                const text = r.innerText;
+                if (text.includes('سعر الدخول')) {
+                    const match = text.match(/\$([0-9.]+)/);
+                    if (match) entry = match[1];
+                }
+                if (text.includes('وقف الخسارة')) {
+                    const match = text.match(/\$([0-9.]+)/);
+                    if (match) sl = match[1];
+                }
+                if (text.includes('الهدف')) {
+                    const match = text.match(/\$([0-9.]+)/);
+                    if (match) tp = match[1];
+                }
+            });
+
+            const response = await fetch('/api/portfolio/add', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    ticker: ticker,
+                    entry_price: entry,
+                    sl: sl,
+                    tp: tp,
+                    shares: 10 // Default mock shares
+                })
+            });
+            
+            const res = await response.json();
+            if (res.success) {
+                alert(res.message);
+                loadPortfolio();
+            }
+        }
+
+        async function loadPortfolio() {
+            const response = await fetch('/api/portfolio');
+            const data = await response.json();
+            if (!data.success) return;
+            
+            const body = document.getElementById('portfolio-body');
+            const totalPnlLabel = document.getElementById('portfolio-total-pnl');
+            
+            if (data.trades.length === 0) {
+                body.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 30px; color: #888;">لا توجد صفقات مفتوحة.</td></tr>';
+                return;
+            }
+            
+            let totalPnl = 0;
+            body.innerHTML = '';
+            
+            data.trades.filter(t => t.status === 'open').forEach(t => {
+                totalPnl += t.pnl;
+                const pnlClass = t.pnl >= 0 ? 'text-success' : 'text-danger';
+                body.innerHTML += `
+                    <tr>
+                        <td style="font-weight: bold; color: var(--primary-gold);">${t.ticker}</td>
+                        <td>$${t.entry_price}</td>
+                        <td>$${t.current_price}</td>
+                        <td>${t.shares}</td>
+                        <td class="${pnlClass}" style="font-weight: bold;">${t.pnl >= 0 ? '+' : ''}$${t.pnl}</td>
+                        <td class="${pnlClass}">${t.pnl_pct >= 0 ? '+' : ''}${t.pnl_pct}%</td>
+                        <td>
+                            <button onclick="closeTrade('${t.id}')" class="btn-small" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 4px; cursor: pointer;">إغلاق</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            totalPnlLabel.innerText = `${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)}`;
+            totalPnlLabel.style.color = totalPnl >= 0 ? '#2ecc71' : '#ff4d4d';
+        }
+
+        async function closeTrade(id) {
+            if (!confirm('هل أنت متأكد من إغلاق هذه الصفقة؟')) return;
+            const response = await fetch('/api/portfolio/close', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({id: id})
+            });
+            const res = await response.json();
+            if (res.success) {
+                loadPortfolio();
+            }
+        }
 
         // Morning Briefing Logic
         async function checkMorningBriefing() {
