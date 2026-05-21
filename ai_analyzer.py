@@ -182,7 +182,8 @@ class AIAnalyzer:
         if self.api_key:
             self.client = OpenAI(
                 api_key=self.api_key,
-                base_url="https://api.groq.com/openai/v1"
+                base_url="https://api.groq.com/openai/v1",
+                timeout=30.0  # 30 second timeout to prevent hanging
             )
 
     def get_ai_insight(self, ticker, info, technical_data, shariah_status, tf_title="يومي", timeframe_val="1d", lang="ar"):

@@ -642,8 +642,8 @@ def chat():
             engine = StockEngine(ticker)
             hist = engine.get_market_data()
             
-            if hist.empty:
-                 return {"response": f"❌ عذراً، لم أتمكن من جلب بيانات للسهم **{ticker}**. يرجى التأكد من الرمز والمحاولة مرة أخرى."}
+            if hist is None or hist.empty:
+                 return {"response": f"<div style='text-align:center;padding:20px;'><i class='fas fa-exclamation-circle' style='font-size:2rem;color:#e74c3c;'></i><h4 style='color:#fff;margin-top:10px;'>❗ لم أتمكن من جلب بيانات للسهم {ticker}</h4><p style='color:#aaa;'>تأكد من الرمز وحاول مرة أخرى</p></div>"}
                  
         # Determine intent - Enhanced with colloquial Arabic
         fundamental_keywords = ["تحليل أساسي", "البيانات المالية", "أساسي", "مالي", "ارباح", "أرباح", "قوائم مالية", "fundamental"]
@@ -670,7 +670,7 @@ def chat():
             # Use dynamic UI timeframe
             hist = engine.get_market_data(period=period, interval=timeframe)
             
-            if hist.empty:
+            if hist is None or hist.empty:
                 return {"response": f"❌ لا توجد بيانات كافية للتحليل الفني لسهم **{ticker}** حالياً."}
                 
             hist = engine.calculate_technical_indicators(hist)
@@ -868,7 +868,7 @@ def chat():
         elif any(kw in user_message for kw in ai_keywords):
              # AI Analysis
             hist = engine.get_market_data(period=period, interval=timeframe)
-            if hist.empty:
+            if hist is None or hist.empty:
                 return {"response": f"❌ لا توجد بيانات كافية للتحليل بناء على الإطار الزمني المختار لسهم **{ticker}** حالياً."}
 
             hist = engine.calculate_technical_indicators(hist)
@@ -882,7 +882,7 @@ def chat():
         elif any(kw in user_message for kw in signal_keywords) and ticker:
             # New Options Trade Signal Card
             hist = engine.get_market_data(period=period, interval=timeframe)
-            if hist.empty:
+            if hist is None or hist.empty:
                 return {"response": f"❌ لا توجد بيانات كافية لتوليد توصية لسهم **{ticker}** حالياً."}
             
             hist = engine.calculate_technical_indicators(hist)
@@ -960,7 +960,7 @@ def chat():
             
             # We need current price for the AI prompt based on timeframe
             hist = engine.get_market_data(period=period, interval=timeframe)
-            if hist.empty:
+            if hist is None or hist.empty:
                  return {"response": f"❌ لا توجد بيانات كافية للتحليل بناء على الإطار الزمني المختار لسهم **{ticker}** حالياً."}
                  
             hist = engine.calculate_technical_indicators(hist)
@@ -1000,7 +1000,7 @@ def chat():
              # Default to Full Report if only ticker is mentioned (or no specific intent detected)
             hist = engine.get_market_data(period=period, interval=timeframe)
             
-            if hist.empty:
+            if hist is None or hist.empty:
                 return {"response": f"❌ لا توجد بيانات كافية للتحليل لحظي لسهم **{ticker}** حالياً."}
                 
             hist = engine.calculate_technical_indicators(hist)
@@ -1105,7 +1105,8 @@ def chat():
             return {"response": response, "chart": chart_json}
 
     except Exception as e:
-        response = f"حدث خطأ أثناء تحليل {ticker}: {str(e)}"
+        logger.error(f"Chat error for {ticker}: {str(e)}")
+        response = f"<div style='color:#e74c3c;padding:15px;background:rgba(231,76,60,0.1);border-radius:8px;border:1px solid rgba(231,76,60,0.3);'><i class='fas fa-exclamation-triangle'></i> <b>حدث خطأ أثناء التحليل:</b><br><span style='font-size:0.85em;color:#999;'>{str(e)[:150]}</span><br><br>حاول مرة أخرى أو اختر سهم آخر.</div>"
 
     return {"response": response}
 
