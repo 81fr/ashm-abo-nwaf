@@ -994,21 +994,7 @@
                     </div>
                     <div style="padding: 15px;">
                         <div id="earnings-list" class="movers-grid">
-                            <div class="mover-item">
-                                <span class="mover-ticker">NVDA</span>
-                                <span class="mover-price">22 May</span>
-                                <span class="mover-change" style="background: rgba(226,192,68,0.1); color: var(--primary-gold);">بعد الإغلاق</span>
-                            </div>
-                            <div class="mover-item">
-                                <span class="mover-ticker">TSLA</span>
-                                <span class="mover-price">24 May</span>
-                                <span class="mover-change" style="background: rgba(226,192,68,0.1); color: var(--primary-gold);">قبل الافتتاح</span>
-                            </div>
-                            <div class="mover-item">
-                                <span class="mover-ticker">AAPL</span>
-                                <span class="mover-price">25 May</span>
-                                <span class="mover-change" style="background: rgba(226,192,68,0.1); color: var(--primary-gold);">بعد الإغلاق</span>
-                            </div>
+                            <div style="text-align: center; color: #888; padding: 15px;"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>
                         </div>
                     </div>
                 </div>
@@ -1087,7 +1073,7 @@
                                 <h4 style="color: #fff; margin: 0 0 10px 0; font-size: 0.95rem;">
                                     <i class="fas fa-fire" style="color: #ff6b35;"></i> {{ t.popular_stocks }}
                                 </h4>
-                                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 8px;">
                                     <button onclick="sendQuickMessage('AAPL')" class="stock-card-btn">
                                         <span class="stock-symbol">AAPL</span>
                                         <span class="stock-name">Apple</span>
@@ -1149,6 +1135,7 @@
                                 <button onclick="sendQuickMessage('عطني سهم')" class="action-pill pill-scan"><i class="fas fa-search-dollar"></i> {{ t.scan_market }}</button>
                                 <button onclick="sendQuickMessage('توصية TSLA')" class="action-pill pill-signal"><i class="fas fa-signal"></i> {{ t.trade_signal }} TSLA</button>
                                 <button onclick="sendQuickMessage('خيارات AAPL')" class="action-pill pill-options"><i class="fas fa-layer-group"></i> {{ t.options }} AAPL</button>
+                                <button onclick="runBacktest()" class="action-pill" style="background: rgba(155,89,182,0.15); color: #9b59b6;"><i class="fas fa-flask"></i> Backtest AAPL</button>
                             </div>
                         </div>
                     </div>
@@ -1709,6 +1696,7 @@
         checkMarketStatus();
         showMorningBriefing();
         loadPortfolio();
+        loadEarnings();
 
         setInterval(checkAnnouncements, 60000); // Check every minute
         setInterval(loadTickets, 30000); // Check tickets every 30s
@@ -1761,53 +1749,141 @@
         }
 
         async function loadPortfolio() {
-            const response = await fetch('/api/portfolio');
-            const data = await response.json();
-            if (!data.success) return;
-            
-            const body = document.getElementById('portfolio-body');
-            const totalPnlLabel = document.getElementById('portfolio-total-pnl');
-            
-            if (data.trades.length === 0) {
-                body.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 30px; color: #888;">لا توجد صفقات مفتوحة.</td></tr>';
-                return;
+            try {
+                const response = await fetch('/api/portfolio');
+                const data = await response.json();
+                if (!data.success) return;
+                
+                const body = document.getElementById('portfolio-body');
+                const totalPnlLabel = document.getElementById('portfolio-total-pnl');
+                
+                const openTrades = data.trades.filter(t => t.status === 'open');
+                if (openTrades.length === 0) {
+                    body.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 30px; color: #888;">لا توجد صفقات مفتوحة.</td></tr>';
+                    totalPnlLabel.innerText = '$0.00';
+                    return;
+                }
+                
+                let totalPnl = 0;
+                body.innerHTML = '';
+                
+                openTrades.forEach(t => {
+                    totalPnl += t.pnl;
+                    const pnlClass = t.pnl >= 0 ? 'text-success' : 'text-danger';
+                    body.innerHTML += `
+                        <tr>
+                            <td style="font-weight: bold; color: var(--primary-gold);">${t.ticker}</td>
+                            <td>$${t.entry_price}</td>
+                            <td>$${t.current_price}</td>
+                            <td>${t.shares}</td>
+                            <td class="${pnlClass}" style="font-weight: bold;">${t.pnl >= 0 ? '+' : ''}$${t.pnl}</td>
+                            <td class="${pnlClass}">${t.pnl_pct >= 0 ? '+' : ''}${t.pnl_pct}%</td>
+                            <td>
+                                <button onclick="closeTrade('${t.id}')" class="btn-small" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 4px; cursor: pointer;">إغلاق</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                totalPnlLabel.innerText = `${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)}`;
+                totalPnlLabel.style.color = totalPnl >= 0 ? '#2ecc71' : '#ff4d4d';
+            } catch (err) {
+                console.error('Portfolio load error:', err);
             }
-            
-            let totalPnl = 0;
-            body.innerHTML = '';
-            
-            data.trades.filter(t => t.status === 'open').forEach(t => {
-                totalPnl += t.pnl;
-                const pnlClass = t.pnl >= 0 ? 'text-success' : 'text-danger';
-                body.innerHTML += `
-                    <tr>
-                        <td style="font-weight: bold; color: var(--primary-gold);">${t.ticker}</td>
-                        <td>$${t.entry_price}</td>
-                        <td>$${t.current_price}</td>
-                        <td>${t.shares}</td>
-                        <td class="${pnlClass}" style="font-weight: bold;">${t.pnl >= 0 ? '+' : ''}$${t.pnl}</td>
-                        <td class="${pnlClass}">${t.pnl_pct >= 0 ? '+' : ''}${t.pnl_pct}%</td>
-                        <td>
-                            <button onclick="closeTrade('${t.id}')" class="btn-small" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 4px; cursor: pointer;">إغلاق</button>
-                        </td>
-                    </tr>
-                `;
-            });
-            
-            totalPnlLabel.innerText = `${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)}`;
-            totalPnlLabel.style.color = totalPnl >= 0 ? '#2ecc71' : '#ff4d4d';
         }
 
         async function closeTrade(id) {
             if (!confirm('هل أنت متأكد من إغلاق هذه الصفقة؟')) return;
-            const response = await fetch('/api/portfolio/close', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({id: id})
-            });
-            const res = await response.json();
-            if (res.success) {
-                loadPortfolio();
+            try {
+                const response = await fetch('/api/portfolio/close', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({id: id})
+                });
+                const res = await response.json();
+                if (res.success) {
+                    loadPortfolio();
+                }
+            } catch (err) {
+                console.error('Close trade error:', err);
+            }
+        }
+
+        // --- Dynamic Earnings Calendar ---
+        async function loadEarnings() {
+            try {
+                const response = await fetch('/api/earnings_calendar');
+                const data = await response.json();
+                const list = document.getElementById('earnings-list');
+                if (data.success && data.earnings.length > 0) {
+                    list.innerHTML = data.earnings.map(e => `
+                        <div class="mover-item" onclick="sendQuickMessage('${e.ticker}')" style="cursor:pointer;">
+                            <span class="mover-ticker">${e.ticker}</span>
+                            <span class="mover-price">${e.date}</span>
+                            <span class="mover-change" style="background: rgba(226,192,68,0.1); color: var(--primary-gold);"><i class="fas fa-chart-line"></i> تحليل</span>
+                        </div>
+                    `).join('');
+                } else {
+                    list.innerHTML = '<div style="text-align:center;color:#888;padding:15px;">لا توجد أرباح قادمة</div>';
+                }
+            } catch (err) {
+                console.error('Earnings load error:', err);
+            }
+        }
+
+        // --- Backtesting ---
+        async function runBacktest() {
+            const ticker = prompt('أدخل رمز السهم للـ Backtest:', 'AAPL');
+            if (!ticker) return;
+            addMessage(`<i class="fas fa-flask"></i> جاري تشغيل Backtest لـ ${ticker}...`, 'bot');
+            showTypingIndicator();
+            try {
+                const response = await fetch('/api/backtest', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ticker: ticker, period: '1y'})
+                });
+                removeTypingIndicator();
+                const data = await response.json();
+                if (data.success) {
+                    const r = data.results;
+                    const resultHTML = `
+                        <div style="background:rgba(155,89,182,0.1);border:1px solid rgba(155,89,182,0.3);border-radius:12px;padding:20px;margin:10px 0;">
+                            <h3 style="color:#9b59b6;margin-bottom:15px;"><i class="fas fa-flask"></i> Backtest Results: ${ticker} (1Y)</h3>
+                            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+                                <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;">
+                                    <div style="font-size:24px;font-weight:bold;color:#e2c044;">${r.total_trades || 0}</div>
+                                    <div style="color:#999;font-size:12px;">إجمالي الصفقات</div>
+                                </div>
+                                <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;">
+                                    <div style="font-size:24px;font-weight:bold;color:${r.win_rate >= 50 ? '#2ecc71' : '#e74c3c'};">${r.win_rate || 0}%</div>
+                                    <div style="color:#999;font-size:12px;">نسبة الفوز</div>
+                                </div>
+                                <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;">
+                                    <div style="font-size:24px;font-weight:bold;color:${r.total_return_pct >= 0 ? '#2ecc71' : '#e74c3c'};">${r.total_return_pct >= 0 ? '+' : ''}${r.total_return_pct || 0}%</div>
+                                    <div style="color:#999;font-size:12px;">إجمالي العائد</div>
+                                </div>
+                                <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;">
+                                    <div style="font-size:20px;font-weight:bold;color:#2ecc71;">+${r.avg_win || 0}%</div>
+                                    <div style="color:#999;font-size:12px;">متوسط الربح</div>
+                                </div>
+                                <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;">
+                                    <div style="font-size:20px;font-weight:bold;color:#e74c3c;">${r.avg_loss || 0}%</div>
+                                    <div style="color:#999;font-size:12px;">متوسط الخسارة</div>
+                                </div>
+                                <div style="text-align:center;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;">
+                                    <div style="font-size:20px;font-weight:bold;color:#e74c3c;">-${r.max_drawdown_pct || 0}%</div>
+                                    <div style="color:#999;font-size:12px;">Max Drawdown</div>
+                                </div>
+                            </div>
+                        </div>`;
+                    addMessage(resultHTML, 'bot');
+                } else {
+                    addMessage(`<span style="color:#e74c3c;">خطأ: ${data.message}</span>`, 'bot');
+                }
+            } catch (err) {
+                removeTypingIndicator();
+                addMessage('<span style="color:#e74c3c;">خطأ في تشغيل الـ Backtest</span>', 'bot');
             }
         }
 

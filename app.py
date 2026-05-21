@@ -4,7 +4,10 @@ from werkzeug.utils import secure_filename
 import os
 import secrets
 import sys
-from datetime import datetime
+import logging
+import sqlite3
+import time as _time
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -27,11 +30,55 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY', secrets.token_hex(16))
 # Session security configurations
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SECURE=False, # Set to True if using HTTPS
+    SESSION_COOKIE_SECURE=False,
     SESSION_COOKIE_SAMESITE='Lax',
+    PERMANENT_SESSION_LIFETIME=timedelta(minutes=30),
 )
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 # 16MB limit
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+
+# Logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Rate Limiting
+_rate_limits = {}
+_RATE_LIMIT_MAX = 20  # max requests per minute
+_RATE_LIMIT_WINDOW = 60  # seconds
+
+def check_rate_limit(username):
+    now = _time.time()
+    if username not in _rate_limits:
+        _rate_limits[username] = []
+    _rate_limits[username] = [t for t in _rate_limits[username] if now - t < _RATE_LIMIT_WINDOW]
+    if len(_rate_limits[username]) >= _RATE_LIMIT_MAX:
+        return False
+    _rate_limits[username].append(now)
+    return True
+
+# SQLite Portfolio
+PORTFOLIO_DB = 'portfolio.db'
+
+def init_portfolio_db():
+    conn = sqlite3.connect(PORTFOLIO_DB)
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS trades (
+        id TEXT PRIMARY KEY,
+        username TEXT,
+        ticker TEXT,
+        entry_price REAL,
+        sl REAL,
+        tp REAL,
+        shares INTEGER,
+        date TEXT,
+        status TEXT DEFAULT 'open',
+        close_price REAL,
+        pnl REAL DEFAULT 0
+    )''')
+    conn.commit()
+    conn.close()
+
+init_portfolio_db()
 
 @app.context_processor
 def inject_translations():
@@ -220,6 +267,7 @@ def login():
                 if user_data['start_date'] <= today <= user_data['end_date']:
                     session['username'] = username
                     session['role'] = user_data.get('role', 'user')
+                    session.permanent = True  # Enable 30-min timeout
                     session.pop('login_attempts', None)
                     return redirect(url_for('dashboard'))
                 else:
@@ -424,6 +472,10 @@ def get_market_status():
 def chat():
     if 'username' not in session:
         return {"error": "Unauthorized"}, 401
+    
+    # Rate limiting check
+    if not check_rate_limit(session['username']):
+        return {"response": "<div style='color:#e74c3c;padding:10px;'>⚠️ لقد تجاوزت الحد الأقصى للطلبات (20/دقيقة). انتظر قليلاً وحاول مرة أخرى.</div>"}
     
     lang = session.get('lang', 'ar')
     t = get_translations(lang)
@@ -1222,21 +1274,7 @@ def ticket_rate():
         return {"success": True}
     return {"error": "Unauthorized or not found"}, 404
 
-# --- Simulated Portfolio Logic ---
-PORTFOLIO_FILE = 'portfolio.json'
-
-def load_portfolio():
-    if not os.path.exists(PORTFOLIO_FILE):
-        return {}
-    try:
-        with open(PORTFOLIO_FILE, 'r') as f:
-            return json.load(f)
-    except:
-        return {}
-
-def save_portfolio(data):
-    with open(PORTFOLIO_FILE, 'w') as f:
-        json.dump(data, f, indent=4)
+# --- SQLite Portfolio (replaces JSON) ---
 
 @app.route('/api/portfolio/add', methods=['POST'])
 def add_to_portfolio():
@@ -1245,26 +1283,17 @@ def add_to_portfolio():
     
     data = request.json
     username = session['username']
+    trade_id = secrets.token_hex(4)
     
-    portfolio = load_portfolio()
-    if username not in portfolio:
-        portfolio[username] = []
-    
-    new_trade = {
-        "id": secrets.token_hex(4),
-        "ticker": data.get('ticker'),
-        "entry_price": float(data.get('entry_price', 0)),
-        "sl": float(data.get('sl', 0)),
-        "tp": float(data.get('tp', 0)),
-        "shares": int(data.get('shares', 1)),
-        "date": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        "status": "open",
-        "close_price": None,
-        "pnl": 0
-    }
-    
-    portfolio[username].append(new_trade)
-    save_portfolio(portfolio)
+    conn = sqlite3.connect(PORTFOLIO_DB)
+    c = conn.cursor()
+    c.execute('''INSERT INTO trades (id, username, ticker, entry_price, sl, tp, shares, date, status, close_price, pnl)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open', NULL, 0)''',
+              (trade_id, username, data.get('ticker'), float(data.get('entry_price', 0)),
+               float(data.get('sl', 0)), float(data.get('tp', 0)),
+               int(data.get('shares', 1)), datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+    conn.commit()
+    conn.close()
     return {"success": True, "message": "تمت إضافة الصفقة للمحفظة"}
 
 @app.route('/api/portfolio')
@@ -1273,25 +1302,29 @@ def get_portfolio():
         return {"success": False}
     
     username = session['username']
-    portfolio = load_portfolio()
-    user_trades = portfolio.get(username, [])
+    conn = sqlite3.connect(PORTFOLIO_DB)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM trades WHERE username = ? ORDER BY date DESC', (username,))
+    rows = c.fetchall()
+    conn.close()
     
-    # Update live prices for open trades
-    for trade in user_trades:
+    trades = [dict(r) for r in rows]
+    
+    for trade in trades:
         if trade['status'] == 'open':
             try:
-                # Optimized: ideally batch this, but for simulation 1-by-1 is okay for now
                 ticker = yf.Ticker(trade['ticker'])
                 current = ticker.fast_info['lastPrice']
                 trade['current_price'] = round(current, 2)
                 trade['pnl'] = round((current - trade['entry_price']) * trade['shares'], 2)
                 trade['pnl_pct'] = round(((current - trade['entry_price']) / trade['entry_price']) * 100, 2)
-            except:
+            except Exception:
                 trade['current_price'] = trade['entry_price']
                 trade['pnl'] = 0
                 trade['pnl_pct'] = 0
 
-    return {"success": True, "trades": user_trades}
+    return {"success": True, "trades": trades}
 
 @app.route('/api/portfolio/close', methods=['POST'])
 def close_trade():
@@ -1300,26 +1333,88 @@ def close_trade():
     
     trade_id = request.json.get('id')
     username = session['username']
-    portfolio = load_portfolio()
     
-    if username in portfolio:
-        for trade in portfolio[username]:
-            if trade['id'] == trade_id:
-                try:
-                    ticker = yf.Ticker(trade['ticker'])
-                    current = ticker.fast_info['lastPrice']
-                    trade['status'] = 'closed'
-                    trade['close_price'] = current
-                    trade['pnl'] = round((current - trade['entry_price']) * trade['shares'], 2)
-                except:
-                    trade['status'] = 'closed'
-                    trade['close_price'] = trade['entry_price']
-                break
-        save_portfolio(portfolio)
+    conn = sqlite3.connect(PORTFOLIO_DB)
+    c = conn.cursor()
+    c.execute('SELECT * FROM trades WHERE id = ? AND username = ?', (trade_id, username))
+    row = c.fetchone()
     
+    if row:
+        try:
+            ticker = yf.Ticker(row[2])  # ticker column
+            current = ticker.fast_info['lastPrice']
+            pnl = round((current - row[3]) * row[6], 2)  # entry_price * shares
+            c.execute('UPDATE trades SET status = ?, close_price = ?, pnl = ? WHERE id = ?',
+                      ('closed', current, pnl, trade_id))
+        except Exception:
+            c.execute('UPDATE trades SET status = ?, close_price = ?, pnl = 0 WHERE id = ?',
+                      ('closed', row[3], trade_id))
+        conn.commit()
+    conn.close()
     return {"success": True}
 
+# --- Real Earnings Calendar ---
+@app.route('/api/earnings_calendar')
+def earnings_calendar():
+    tickers = ['AAPL', 'MSFT', 'NVDA', 'TSLA', 'GOOG', 'META', 'AMZN', 'AMD']
+    earnings = []
+    for sym in tickers:
+        try:
+            t = yf.Ticker(sym)
+            cal = t.calendar
+            if cal is not None and not cal.empty:
+                date = str(cal.iloc[0, 0]) if hasattr(cal, 'iloc') else str(cal)
+                earnings.append({'ticker': sym, 'date': date[:10]})
+            else:
+                info = t.info
+                if 'earningsDate' in info:
+                    earnings.append({'ticker': sym, 'date': str(info['earningsDate'])[:10]})
+        except Exception:
+            pass
+    earnings.sort(key=lambda x: x.get('date', '9999'))
+    return {"success": True, "earnings": earnings}
+
+# --- Backtesting API ---
+@app.route('/api/backtest', methods=['POST'])
+def backtest():
+    if 'username' not in session:
+        return {"success": False, "message": "Login required"}
+    
+    data = request.json
+    ticker = data.get('ticker', 'AAPL')
+    period = data.get('period', '1y')
+    
+    try:
+        engine = StockEngine(ticker)
+        hist = engine.get_market_data(period=period)
+        if hist is None or hist.empty:
+            return {"success": False, "message": "No data available"}
+        hist = engine.calculate_technical_indicators(hist)
+        results = engine.backtest_strategy(hist)
+        return {"success": True, "ticker": ticker, "period": period, "results": results}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+# --- Portfolio Analytics API ---
+@app.route('/api/portfolio/analytics')
+def portfolio_analytics():
+    if 'username' not in session:
+        return {"success": False}
+    
+    username = session['username']
+    conn = sqlite3.connect(PORTFOLIO_DB)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM trades WHERE username = ? AND status = ?', (username, 'closed'))
+    rows = c.fetchall()
+    conn.close()
+    
+    trades = [dict(r) for r in rows]
+    if not trades:
+        return {"success": True, "metrics": {"error": "No closed trades yet"}}
+    
+    metrics = StockEngine.calculate_portfolio_metrics(trades)
+    return {"success": True, "metrics": metrics}
+
 if __name__ == '__main__':
-    # Using host='0.0.0.0' to make it accessible externally if needed
-    # Using debug=False for production security
     app.run(debug=False, host='0.0.0.0', port=5000)

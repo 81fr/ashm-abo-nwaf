@@ -370,22 +370,241 @@ class StockEngine:
             # Sort by change
             movers.sort(key=lambda x: x['change'], reverse=True)
             return movers[:5], movers[-5:] # Top 5 Gainers, Top 5 Losers
-        except:
+        except Exception:
             return [], []
 
+    # --- DATA CACHE ---
+    _cache = {}
+    _CACHE_TTL = 300  # 5 minutes
+
+    def get_cached_data(self, period="6mo", interval="1d"):
+        """Fetches market data with 5-minute in-memory cache."""
+        import time as _time
+        cache_key = (self.ticker_symbol, period, interval)
+        now = _time.time()
+        if cache_key in StockEngine._cache:
+            ts, data = StockEngine._cache[cache_key]
+            if now - ts < StockEngine._CACHE_TTL:
+                return data.copy()
+        data = self.get_market_data(period, interval)
+        if data is not None and not data.empty:
+            StockEngine._cache[cache_key] = (now, data)
+        return data
+
+    # --- VWAP ---
+    def calculate_vwap(self, df):
+        """Calculates Volume Weighted Average Price."""
+        try:
+            typical_price = (df['High'] + df['Low'] + df['Close']) / 3
+            df['VWAP'] = (typical_price * df['Volume']).cumsum() / df['Volume'].cumsum()
+        except Exception:
+            df['VWAP'] = df['Close']
+        return df
+
+    # --- CANDLESTICK PATTERNS ---
+    def detect_candlestick_patterns(self, df):
+        """Detects Japanese candlestick patterns from the last 3 candles."""
+        patterns = []
+        if df is None or len(df) < 3:
+            return patterns
+        try:
+            c = df.iloc[-1]  # Current candle
+            p = df.iloc[-2]  # Previous candle
+            pp = df.iloc[-3] # Two candles ago
+
+            body = abs(c['Close'] - c['Open'])
+            upper_shadow = c['High'] - max(c['Close'], c['Open'])
+            lower_shadow = min(c['Close'], c['Open']) - c['Low']
+            candle_range = c['High'] - c['Low']
+
+            # Doji: body is very small relative to range
+            if candle_range > 0 and body / candle_range < 0.1:
+                patterns.append("دوجي (Doji) - تردد في السوق")
+
+            # Hammer: long lower shadow, small body at top
+            if body > 0 and lower_shadow > 2 * body and upper_shadow < body * 0.5:
+                patterns.append("مطرقة (Hammer) - إشارة انعكاس صعودي")
+
+            # Shooting Star: long upper shadow, small body at bottom
+            if body > 0 and upper_shadow > 2 * body and lower_shadow < body * 0.5:
+                patterns.append("نجمة ساقطة (Shooting Star) - إشارة انعكاس هبوطي")
+
+            # Bullish Engulfing
+            p_body = abs(p['Close'] - p['Open'])
+            if (p['Close'] < p['Open'] and  # Previous was red
+                c['Close'] > c['Open'] and   # Current is green
+                c['Open'] <= p['Close'] and c['Close'] >= p['Open'] and
+                body > p_body):
+                patterns.append("ابتلاع صعودي (Bullish Engulfing) - قوة شرائية")
+
+            # Bearish Engulfing
+            if (p['Close'] > p['Open'] and  # Previous was green
+                c['Close'] < c['Open'] and   # Current is red
+                c['Open'] >= p['Close'] and c['Close'] <= p['Open'] and
+                body > p_body):
+                patterns.append("ابتلاع هبوطي (Bearish Engulfing) - ضغط بيعي")
+
+            # Morning Star (3-candle bullish reversal)
+            pp_body = abs(pp['Close'] - pp['Open'])
+            if (pp['Close'] < pp['Open'] and  # First: red
+                p_body < pp_body * 0.3 and     # Second: small body (star)
+                c['Close'] > c['Open'] and     # Third: green
+                c['Close'] > (pp['Open'] + pp['Close']) / 2):
+                patterns.append("نجمة الصباح (Morning Star) - انعكاس صعودي قوي")
+
+        except Exception:
+            pass
+        return patterns
+
+    # --- FIBONACCI RETRACEMENT ---
+    def calculate_fibonacci_levels(self, df, period=60):
+        """Calculates Fibonacci retracement levels from recent high/low."""
+        try:
+            recent = df.tail(period)
+            high = recent['High'].max()
+            low = recent['Low'].min()
+            diff = high - low
+
+            levels = {
+                '0.0%': high,
+                '23.6%': high - 0.236 * diff,
+                '38.2%': high - 0.382 * diff,
+                '50.0%': high - 0.5 * diff,
+                '61.8%': high - 0.618 * diff,
+                '78.6%': high - 0.786 * diff,
+                '100.0%': low
+            }
+            return levels
+        except Exception:
+            return {}
+
+    # --- BACKTESTING ENGINE ---
+    def backtest_strategy(self, df, strategy='ema_cross'):
+        """Backtests EMA crossover strategy on historical data."""
+        try:
+            if df is None or len(df) < 60:
+                return {"error": "Insufficient data for backtesting"}
+
+            trades = []
+            position = None
+
+            for i in range(1, len(df)):
+                ema20 = df['EMA20'].iloc[i]
+                ema50 = df['EMA50'].iloc[i]
+                prev_ema20 = df['EMA20'].iloc[i-1]
+                prev_ema50 = df['EMA50'].iloc[i-1]
+                price = df['Close'].iloc[i]
+
+                # Buy signal: EMA20 crosses above EMA50
+                if prev_ema20 <= prev_ema50 and ema20 > ema50 and position is None:
+                    position = {'entry': price, 'entry_idx': i}
+
+                # Sell signal: EMA20 crosses below EMA50
+                elif prev_ema20 >= prev_ema50 and ema20 < ema50 and position is not None:
+                    pnl_pct = ((price - position['entry']) / position['entry']) * 100
+                    trades.append({
+                        'entry': round(float(position['entry']), 2),
+                        'exit': round(float(price), 2),
+                        'pnl_pct': round(float(pnl_pct), 2),
+                        'win': pnl_pct > 0
+                    })
+                    position = None
+
+            if not trades:
+                return {"total_trades": 0, "message": "No trades generated"}
+
+            wins = [t for t in trades if t['win']]
+            losses = [t for t in trades if not t['win']]
+
+            # Calculate max drawdown
+            cumulative = 0
+            peak = 0
+            max_dd = 0
+            for t in trades:
+                cumulative += t['pnl_pct']
+                if cumulative > peak:
+                    peak = cumulative
+                dd = peak - cumulative
+                if dd > max_dd:
+                    max_dd = dd
+
+            total_return = sum(t['pnl_pct'] for t in trades)
+
+            return {
+                "total_trades": len(trades),
+                "winning_trades": len(wins),
+                "losing_trades": len(losses),
+                "win_rate": round(len(wins) / len(trades) * 100, 1),
+                "total_return_pct": round(float(total_return), 2),
+                "avg_win": round(sum(t['pnl_pct'] for t in wins) / len(wins), 2) if wins else 0,
+                "avg_loss": round(sum(t['pnl_pct'] for t in losses) / len(losses), 2) if losses else 0,
+                "max_drawdown_pct": round(float(max_dd), 2),
+                "trades": trades[-10:]  # Last 10 trades
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
+    # --- PORTFOLIO ANALYTICS ---
+    @staticmethod
+    def calculate_portfolio_metrics(trades):
+        """Calculates portfolio-level metrics from closed trades."""
+        try:
+            if not trades:
+                return {"error": "No trades to analyze"}
+
+            returns = []
+            for t in trades:
+                entry = float(t.get('entry_price', 0))
+                close = float(t.get('close_price', entry))
+                shares = int(t.get('shares', 1))
+                if entry > 0:
+                    pnl = (close - entry) * shares
+                    pnl_pct = ((close - entry) / entry) * 100
+                    returns.append({'pnl': pnl, 'pnl_pct': pnl_pct})
+
+            if not returns:
+                return {"error": "No valid trades"}
+
+            total_pnl = sum(r['pnl'] for r in returns)
+            pcts = [r['pnl_pct'] for r in returns]
+            wins = [r for r in returns if r['pnl'] > 0]
+            losses = [r for r in returns if r['pnl'] <= 0]
+
+            avg_return = np.mean(pcts)
+            std_return = np.std(pcts) if len(pcts) > 1 else 1
+            sharpe = round(float(avg_return / std_return), 2) if std_return > 0 else 0
+
+            # Max drawdown
+            cumulative = 0
+            peak = 0
+            max_dd = 0
+            for r in returns:
+                cumulative += r['pnl_pct']
+                if cumulative > peak:
+                    peak = cumulative
+                dd = peak - cumulative
+                if dd > max_dd:
+                    max_dd = dd
+
+            return {
+                "total_pnl": round(float(total_pnl), 2),
+                "total_trades": len(returns),
+                "win_rate": round(len(wins) / len(returns) * 100, 1),
+                "avg_win": round(float(np.mean([r['pnl'] for r in wins])), 2) if wins else 0,
+                "avg_loss": round(float(np.mean([r['pnl'] for r in losses])), 2) if losses else 0,
+                "sharpe_ratio": sharpe,
+                "max_drawdown_pct": round(float(max_dd), 2)
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
 if __name__ == "__main__":
-    # Test with a known stock
     engine = StockEngine("AAPL")
     hist = engine.get_market_data()
     hist = engine.calculate_technical_indicators(hist)
-    is_halal, reason = engine.screen_shariah_compliance()
-    rec = engine.get_recommendation(hist)
-    
+    hist = engine.calculate_vwap(hist)
     print(f"Ticker: AAPL")
-    print(f"Shariah Status: {reason}")
-    print(f"Fundamental Score: {engine.calculate_fundamental_score()}")
-    print(f"Current Price: {hist['Close'].iloc[-1]:.2f}")
-    
-    gainers, losers = StockEngine.get_market_movers()
-    print(f"Top Gainer: {gainers[0] if gainers else 'N/A'}")
-
+    print(f"VWAP: {hist['VWAP'].iloc[-1]:.2f}")
+    print(f"Patterns: {engine.detect_candlestick_patterns(hist)}")
+    print(f"Fibonacci: {engine.calculate_fibonacci_levels(hist)}")
+    print(f"Backtest: {engine.backtest_strategy(hist)}")
