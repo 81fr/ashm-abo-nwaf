@@ -21,8 +21,8 @@ import pandas as pd
 from translations import get_translations
 
 app = Flask(__name__)
-# Generate a random secret key for session management
-app.secret_key = secrets.token_hex(16)
+# Use persistent secret key from .env (prevents session loss on restart)
+app.secret_key = os.getenv('FLASK_SECRET_KEY', secrets.token_hex(16))
 
 # Session security configurations
 app.config.update(

@@ -276,7 +276,9 @@ class AIAnalyzer:
                     messages=[
                         {"role": "system", "content": f"You are a master financial advisor who simplifies complex data for beginners. Return ONLY the two HTML blocks (Summary and Table)."},
                         {"role": "user", "content": prompt}
-                    ]
+                    ],
+                    temperature=0.3,
+                    max_tokens=2000
                 )
                 return response.choices[0].message.content
             return "Error: Groq client not initialized." if lang == "en" else "خطأ: لم يتم تهيئة الاتصال بـ Groq."
@@ -303,7 +305,7 @@ class AIAnalyzer:
             for opp in opportunities_list
         ])
 
-        table_template = UNIFIED_TABLE_HTML.replace('{ticker}', f'[رمز السهم] ({tf_title})').replace('{current_price}', '[السعر]').replace('{support}', '[دعم]').replace('{resistance}', '[مقاومة]').replace('{generation_time}', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        table_template = UNIFIED_TABLE_HTML.replace('{ticker}', f'[رمز السهم] ({tf_title})').replace('{current_price}', '[السعر]').replace('{support}', '[دعم]').replace('{resistance}', '[مقاومة]').replace('{ticker_only}', '[رمز_السهم]').replace('{generation_time}', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
         prompt = f"""
         I have scanned the market on the {tf_title} timeframe and found the following Technical Buy opportunities:
@@ -325,7 +327,9 @@ class AIAnalyzer:
                     messages=[
                         {"role": "system", "content": "أنت مستشار مالي خبير. تعطي إجابات دقيقة واحترافية باللغة العربية داخل القالب المطلوب فقط."},
                         {"role": "user", "content": prompt}
-                    ]
+                    ],
+                    temperature=0.3,
+                    max_tokens=2000
                 )
                 return response.choices[0].message.content
             return None
@@ -363,7 +367,7 @@ class AIAnalyzer:
         You MUST return ONLY the following HTML table format exactly as shown, filled with data in Arabic. Do not add conversational text outside the table.
         Replace irrelevant fields with 'يعتمد على نظرة المتداول'.
 
-        {UNIFIED_TABLE_HTML.format(ticker=f"{ticker} ({tf_title})", current_price=f"${current_price:.2f}", support=support_val, resistance=res_val, generation_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))}
+        {UNIFIED_TABLE_HTML.format(ticker=f"{ticker} ({tf_title})", current_price=f"${current_price:.2f}", support=support_val, resistance=res_val, ticker_only=ticker, generation_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))}
         """
 
         try:
@@ -373,7 +377,9 @@ class AIAnalyzer:
                     messages=[
                         {"role": "system", "content": "أنت خبير محترف في تداول عقود الخيارات (Options) وتعطي تحليلات دقيقة بالعربية باستخدام الجدول."},
                         {"role": "user", "content": prompt}
-                    ]
+                    ],
+                    temperature=0.3,
+                    max_tokens=2000
                 )
                 return response.choices[0].message.content
             return "خطأ: لم يتم تهيئة الاتصال بـ Groq."
@@ -426,7 +432,7 @@ class AIAnalyzer:
         
         You MUST return ONLY the following HTML table format exactly as shown, filled with data in Arabic. Do not add conversational text outside this table. Use the exact inline CSS provided.
         
-        {UNIFIED_TABLE_HTML.format(ticker=f"{ticker} ({tf_title})", current_price=f"${current_price:.2f}", support=f"${support:.2f}", resistance=f"${resistance:.2f}", generation_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))}
+        {UNIFIED_TABLE_HTML.format(ticker=f"{ticker} ({tf_title})", current_price=f"${current_price:.2f}", support=f"${support:.2f}", resistance=f"${resistance:.2f}", ticker_only=ticker, generation_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))}
         """
 
         try:
@@ -436,7 +442,9 @@ class AIAnalyzer:
                     messages=[
                         {"role": "system", "content": "أنت خبير محترف في تداول عقود الأوبشن للأسهم الأمريكية. تعطي توصيات مباشرة وصارمة بناءً على القالب الموحد باللغة العربية."},
                         {"role": "user", "content": prompt}
-                    ]
+                    ],
+                    temperature=0.3,
+                    max_tokens=2000
                 )
                 return response.choices[0].message.content
             return "خطأ: لم يتم تهيئة الاتصال بـ Groq."

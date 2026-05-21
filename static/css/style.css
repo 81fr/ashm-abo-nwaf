@@ -478,3 +478,24 @@ input:focus+.input-icon,
     background: rgba(231, 76, 60, 0.15);
     color: #e74c3c;
 }
+
+/* Portfolio P&L Colors */
+.text-success {
+    color: #2ecc71 !important;
+}
+
+.text-danger {
+    color: #e74c3c !important;
+}
+
+/* Fade In Animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

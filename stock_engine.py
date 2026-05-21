@@ -41,11 +41,13 @@ class StockEngine:
         df['EMA20'] = df['Close'].ewm(span=20, adjust=False).mean()
         df['EMA50'] = df['Close'].ewm(span=50, adjust=False).mean()
         
-        # RSI
+        # RSI (Wilder's Smoothing / EMA method — matches TradingView/Bloomberg)
         delta = df['Close'].diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-        rs = gain / loss
+        gain = delta.where(delta > 0, 0)
+        loss = -delta.where(delta < 0, 0)
+        avg_gain = gain.ewm(alpha=1/14, min_periods=14, adjust=False).mean()
+        avg_loss = loss.ewm(alpha=1/14, min_periods=14, adjust=False).mean()
+        rs = avg_gain / avg_loss
         df['RSI'] = 100 - (100 / (1 + rs))
         
         # MACD
@@ -98,18 +100,23 @@ class StockEngine:
             
             latest_bs = balance_sheet.iloc[:, 0] # Get most recent quarter
             
-            # Total Debt
+            # Total Debt (handle NaN)
             total_debt = latest_bs.get("Total Debt", 0)
+            if pd.isna(total_debt): total_debt = 0
             debt_ratio = total_debt / market_cap
             
-            # Cash & Interest Bearing Securities
+            # Cash & Interest Bearing Securities (handle NaN)
             cash = latest_bs.get("Cash And Cash Equivalents", 0)
+            if pd.isna(cash): cash = 0
             st_investments = latest_bs.get("Short Term Investments", 0)
+            if pd.isna(st_investments): st_investments = 0
             cash_interest_ratio = (cash + st_investments) / market_cap
             
-            # Accounts Receivable
+            # Accounts Receivable (handle NaN)
             receivables = latest_bs.get("Net Receivables", 0)
-            total_assets = latest_bs.get("Total Assets", 1) # Avoid division by zero
+            if pd.isna(receivables): receivables = 0
+            total_assets = latest_bs.get("Total Assets", 1)
+            if pd.isna(total_assets) or total_assets == 0: total_assets = 1
             receivables_ratio = receivables / total_assets
             
             # Pass/Fail

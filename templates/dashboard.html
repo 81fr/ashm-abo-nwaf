@@ -585,6 +585,7 @@
 
             .main-content {
                 margin-right: 0;
+                margin-left: 0;
                 width: 100%;
                 padding: 1.5rem;
             }
@@ -1716,8 +1717,9 @@
 
         // Portfolio Logic
         async function saveToPortfolio(ticker) {
-            // Find data from the last AI table
-            const table = document.querySelector('.ai-table');
+            // Find the LAST AI table in chat (not the portfolio table which is first)
+            const tables = document.querySelectorAll('.ai-table');
+            const table = tables.length > 1 ? tables[tables.length - 1] : tables[0];
             if (!table) return;
             
             const rows = table.querySelectorAll('tr');
