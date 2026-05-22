@@ -6,8 +6,8 @@ ACCESS_KEY = 'Nx4BNh28ia1Xehrsi6vw'
 SECRET_KEY = 'ppvp5a5yP0rjHJnAHIflbREs3kOY2hgqD5t4NUyv'
 ENDPOINT = 'https://s3.us-west-2.idrivee2.com'
 BUCKET_NAME = 'ashm-abo-nwaf-site'
-FILE_PATH = r'c:\Users\IT\Documents\GitHub\ashm-abo-nwaf\site_backup.zip'
-OBJECT_NAME = 'site_backup.zip'
+FILE_PATH = r'c:\Users\IT\Documents\GitHub\ashm-abo-nwaf\SnapPlus_Final_Bundle.zip'
+OBJECT_NAME = 'SnapPlus_Final_Bundle.zip'
 
 def upload_file():
     session = boto3.session.Session()

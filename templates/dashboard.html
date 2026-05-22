@@ -1154,22 +1154,21 @@
                             <i class="fas fa-paper-plane"></i>
                         </button>
                     </div>
+
+                    <!-- Chart will appear here, exactly under the chat input -->
+                    <div class="panel-card" id="chart-wrapper" style="display: none; padding: 15px; margin-top: 20px; border-radius: 12px; background: #ffffff; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                        <div class="panel-header" style="margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #eee;">
+                            <i class="fas fa-chart-area" style="color: #333;"></i>
+                            <h3 style="font-size: 1.1rem; color: #111;">الرؤية البصرية للسعر</h3>
+                        </div>
+                        <div id="plotly-chart" style="width: 100%; height: 850px;"></div>
+                    </div>
+
                 </div>
 
                 <!-- Settings and Charts Column -->
-                <div style="display: flex; flex-direction: column; gap: 2rem;">
-
+                <div style="display: flex; flex-direction: column; gap: 2rem;" id="settings-column">
                     <!-- Groq API settings hidden as requested -->
-
-
-                    <div class="panel-card" id="chart-wrapper">
-                        <div class="panel-header">
-                            <i class="fas fa-chart-area"></i>
-                            <h3>الرؤية البصرية للسعر</h3>
-                        </div>
-                        <div id="plotly-chart" style="width: 100%; height: 900px;"></div>
-                    </div>
-
                 </div>
 
             </div>
@@ -1244,6 +1243,8 @@
                     chartWrapper.style.display = 'block';
                     const chartData = JSON.parse(data.chart);
                     Plotly.newPlot('plotly-chart', chartData.data, chartData.layout, { responsive: true });
+                    // Scroll to chart
+                    chartWrapper.scrollIntoView({ behavior: 'smooth' });
                 }
             } catch (error) {
                 removeTypingIndicator();
@@ -1922,7 +1923,7 @@
 
     <!-- Morning Briefing Modal -->
     <div id="briefing-modal" class="modal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);">
-        <div class="glass-panel" style="position: relative; margin: 5% auto; width: 90%; max-width: 700px; padding: 30px; animation: slideUpFade 0.5s ease;">
+        <div style="background: #111; border: 1px solid rgba(226,192,68,0.3); border-radius: 16px; box-shadow: 0 4px 30px rgba(0,0,0,0.5); position: relative; margin: 5% auto; width: 90%; max-width: 700px; padding: 30px; animation: slideUpFade 0.5s ease;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid rgba(226,192,68,0.2); padding-bottom: 15px;">
                 <h2 style="color: #e2c044; margin: 0; font-family: 'Cairo', sans-serif;"><i class="fas fa-sun"></i> ملخص الصباح الذكي</h2>
                 <button onclick="closeBriefing()" style="background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer;">&times;</button>

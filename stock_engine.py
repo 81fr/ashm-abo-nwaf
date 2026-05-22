@@ -36,8 +36,9 @@ class StockEngine:
             return pd.DataFrame()
 
     def calculate_technical_indicators(self, df):
-        """Calculates RSI, MACD, and EMA."""
-        # EMA
+        """Calculates advanced technical indicators: RSI, MACD, EMA, VWAP, Stochastic, ADX, Bollinger."""
+        # EMA (multiple periods)
+        df['EMA9'] = df['Close'].ewm(span=9, adjust=False).mean()
         df['EMA20'] = df['Close'].ewm(span=20, adjust=False).mean()
         df['EMA50'] = df['Close'].ewm(span=50, adjust=False).mean()
         
@@ -55,6 +56,38 @@ class StockEngine:
         exp2 = df['Close'].ewm(span=26, adjust=False).mean()
         df['MACD'] = exp1 - exp2
         df['Signal_Line'] = df['MACD'].ewm(span=9, adjust=False).mean()
+        df['MACD_Hist'] = df['MACD'] - df['Signal_Line']
+        
+        # Stochastic Oscillator (%K and %D)
+        low_14 = df['Low'].rolling(window=14).min()
+        high_14 = df['High'].rolling(window=14).max()
+        df['Stoch_K'] = ((df['Close'] - low_14) / (high_14 - low_14)) * 100
+        df['Stoch_D'] = df['Stoch_K'].rolling(window=3).mean()
+        
+        # ADX (Average Directional Index — trend strength)
+        plus_dm = df['High'].diff()
+        minus_dm = df['Low'].diff().apply(lambda x: -x)
+        plus_dm[plus_dm < 0] = 0
+        minus_dm[minus_dm < 0] = 0
+        
+        tr1 = df['High'] - df['Low']
+        tr2 = abs(df['High'] - df['Close'].shift())
+        tr3 = abs(df['Low'] - df['Close'].shift())
+        tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+        atr_14 = tr.rolling(window=14).mean()
+        
+        plus_di = 100 * (plus_dm.rolling(window=14).mean() / atr_14)
+        minus_di = 100 * (minus_dm.rolling(window=14).mean() / atr_14)
+        dx = (abs(plus_di - minus_di) / (plus_di + minus_di)) * 100
+        df['ADX'] = dx.rolling(window=14).mean()
+        df['Plus_DI'] = plus_di
+        df['Minus_DI'] = minus_di
+        
+        # VWAP (Volume Weighted Average Price)
+        if 'Volume' in df.columns:
+            cumulative_tp_vol = (df['Close'] * df['Volume']).cumsum()
+            cumulative_vol = df['Volume'].cumsum()
+            df['VWAP'] = cumulative_tp_vol / cumulative_vol
         
         # Support and Resistance (Reversal Zones)
         window = 20
@@ -151,58 +184,340 @@ class StockEngine:
         df['ATR'] = true_range.rolling(window=period).mean()
         return df
 
+    def detect_candlestick_patterns(self, df):
+        """Detects major Japanese candlestick patterns on the last few candles."""
+        patterns = []
+        if len(df) < 3:
+            return patterns
+        
+        latest = df.iloc[-1]
+        prev = df.iloc[-2]
+        prev2 = df.iloc[-3]
+        
+        body = abs(latest['Close'] - latest['Open'])
+        upper_shadow = latest['High'] - max(latest['Close'], latest['Open'])
+        lower_shadow = min(latest['Close'], latest['Open']) - latest['Low']
+        total_range = latest['High'] - latest['Low']
+        
+        prev_body = abs(prev['Close'] - prev['Open'])
+        
+        if total_range == 0:
+            return patterns
+        
+        # 1. Hammer (bullish reversal)
+        if (lower_shadow > body * 2 and upper_shadow < body * 0.5 
+            and latest['Close'] > latest['Open'] and prev['Close'] < prev['Open']):
+            patterns.append(("🔨 مطرقة (Hammer)", "صعودي", "نمط انعكاسي صعودي قوي"))
+        
+        # 2. Inverted Hammer
+        if (upper_shadow > body * 2 and lower_shadow < body * 0.5 
+            and prev['Close'] < prev['Open']):
+            patterns.append(("🔨 مطرقة مقلوبة (Inverted Hammer)", "صعودي", "إشارة انعكاس صعودي محتمل"))
+        
+        # 3. Bullish Engulfing
+        if (prev['Close'] < prev['Open'] and latest['Close'] > latest['Open']
+            and latest['Open'] <= prev['Close'] and latest['Close'] >= prev['Open']
+            and body > prev_body):
+            patterns.append(("🟢 ابتلاع صعودي (Bullish Engulfing)", "صعودي", "إشارة انعكاس صعودي قوية جداً"))
+        
+        # 4. Bearish Engulfing
+        if (prev['Close'] > prev['Open'] and latest['Close'] < latest['Open']
+            and latest['Open'] >= prev['Close'] and latest['Close'] <= prev['Open']
+            and body > prev_body):
+            patterns.append(("🔴 ابتلاع هبوطي (Bearish Engulfing)", "هبوطي", "إشارة انعكاس هبوطي قوية جداً"))
+        
+        # 5. Doji
+        if body < total_range * 0.1 and total_range > 0:
+            patterns.append(("✳️ دوجي (Doji)", "محايد", "تردد في السوق — انتظر تأكيد الاتجاه"))
+        
+        # 6. Morning Star (bullish — 3 candle pattern)
+        if (prev2['Close'] < prev2['Open']  # Big red
+            and abs(prev['Close'] - prev['Open']) < abs(prev2['Close'] - prev2['Open']) * 0.3  # Small body
+            and latest['Close'] > latest['Open']  # Big green
+            and latest['Close'] > (prev2['Open'] + prev2['Close']) / 2):
+            patterns.append(("⭐ نجمة الصباح (Morning Star)", "صعودي", "نمط انعكاسي صعودي ثلاثي قوي"))
+        
+        # 7. Evening Star (bearish — 3 candle pattern)
+        if (prev2['Close'] > prev2['Open']  # Big green
+            and abs(prev['Close'] - prev['Open']) < abs(prev2['Close'] - prev2['Open']) * 0.3  # Small body
+            and latest['Close'] < latest['Open']  # Big red
+            and latest['Close'] < (prev2['Open'] + prev2['Close']) / 2):
+            patterns.append(("⭐ نجمة المساء (Evening Star)", "هبوطي", "نمط انعكاسي هبوطي ثلاثي قوي"))
+        
+        # 8. Three White Soldiers
+        if (len(df) >= 3 
+            and all(df['Close'].iloc[-i] > df['Open'].iloc[-i] for i in range(1, 4))
+            and df['Close'].iloc[-1] > df['Close'].iloc[-2] > df['Close'].iloc[-3]):
+            patterns.append(("🟢🟢🟢 ثلاث جنود بيض (Three White Soldiers)", "صعودي", "زخم صعودي قوي جداً"))
+        
+        # 9. Three Black Crows
+        if (len(df) >= 3 
+            and all(df['Close'].iloc[-i] < df['Open'].iloc[-i] for i in range(1, 4))
+            and df['Close'].iloc[-1] < df['Close'].iloc[-2] < df['Close'].iloc[-3]):
+            patterns.append(("🔴🔴🔴 ثلاث غربان سود (Three Black Crows)", "هبوطي", "زخم هبوطي قوي جداً"))
+        
+        return patterns
+
+    def calculate_fibonacci_levels(self, df, lookback=50):
+        """Calculates Fibonacci retracement levels from recent swing high/low."""
+        if len(df) < lookback:
+            lookback = len(df)
+        
+        recent = df.tail(lookback)
+        swing_high = recent['High'].max()
+        swing_low = recent['Low'].min()
+        diff = swing_high - swing_low
+        
+        fib_levels = {
+            "0.0%": swing_high,
+            "23.6%": swing_high - (diff * 0.236),
+            "38.2%": swing_high - (diff * 0.382),
+            "50.0%": swing_high - (diff * 0.500),
+            "61.8%": swing_high - (diff * 0.618),
+            "78.6%": swing_high - (diff * 0.786),
+            "100%": swing_low
+        }
+        
+        return fib_levels
+
     def get_recommendation(self, df):
-        """Standard recommendation with Entry, SL, and TP based on ATR."""
+        """Advanced recommendation engine with multi-factor scoring."""
         df = self.calculate_atr(df)
         latest = df.iloc[-1]
         prev = df.iloc[-2]
         
         score = 0
-        # RSI Check
-        if latest['RSI'] < 40: score += 1 # Undervalued / Approaching oversold
-        elif latest['RSI'] > 70: score -= 2 # Overbought
+        reasons_bull = []
+        reasons_bear = []
         
-        # MACD Trend and Cross
-        if latest['MACD'] > latest['Signal_Line']:
-            score += 1 # Bullish MACD Trend
-            if prev['MACD'] <= prev['Signal_Line']:
-                score += 1 # Bullish cross today
-        elif latest['MACD'] < latest['Signal_Line']:
-            score -= 1 # Bearish MACD Trend
-            if prev['MACD'] >= prev['Signal_Line']:
-                score -= 1 # Bearish cross today
+        # === 1. Price Trend (Short-term direction) ===
+        if len(df) >= 5:
+            recent_5 = df['Close'].tail(5)
+            pct_change_5 = (recent_5.iloc[-1] - recent_5.iloc[0]) / recent_5.iloc[0] * 100
+            if pct_change_5 > 1.5:
+                score += 1
+                reasons_bull.append(f"اتجاه صاعد {pct_change_5:.1f}%")
+            elif pct_change_5 < -1.5:
+                score -= 1
+                reasons_bear.append(f"اتجاه هابط {pct_change_5:.1f}%")
+        
+        # === 2. EMA Position (Close vs EMA20 and EMA50) ===
+        above_ema20 = latest['Close'] > latest['EMA20']
+        above_ema50 = latest['Close'] > latest['EMA50']
+        
+        if above_ema20 and above_ema50:
+            score += 1
+            reasons_bull.append("السعر فوق EMA20 و EMA50")
+        elif not above_ema20 and not above_ema50:
+            score -= 1
+            reasons_bear.append("السعر تحت EMA20 و EMA50")
             
-        # EMA Trend
-        if latest['Close'] > latest['EMA50']: score += 1
-        else: score -= 1
+        # === 3. EMA Crossover (Golden/Death Cross) ===
+        ema20_above_ema50 = latest['EMA20'] > latest['EMA50']
+        prev_ema20_above_ema50 = prev['EMA20'] > prev['EMA50']
         
-        # Determine Signal and Levels
-        signal = "Hold (انتظار/مراقبة)"
-        levels = {}
+        if ema20_above_ema50:
+            score += 1
+            reasons_bull.append("EMA20 فوق EMA50 (اتجاه صاعد)")
+            if not prev_ema20_above_ema50:
+                score += 1  # Fresh golden cross
+                reasons_bull.append("تقاطع ذهبي حديث!")
+        else:
+            score -= 1
+            reasons_bear.append("EMA20 تحت EMA50 (اتجاه هابط)")
+            if prev_ema20_above_ema50:
+                score -= 1  # Fresh death cross
+                reasons_bear.append("تقاطع سلبي حديث!")
         
+        # === 4. RSI Analysis (more nuanced) ===
+        rsi = latest['RSI']
+        if rsi < 30:
+            score += 2  # Oversold - strong buy signal
+            reasons_bull.append(f"RSI تشبع بيعي قوي ({rsi:.0f})")
+        elif rsi < 45:
+            score += 1
+            reasons_bull.append(f"RSI منخفض ({rsi:.0f})")
+        elif rsi > 80:
+            score -= 2  # Extremely overbought
+            reasons_bear.append(f"RSI تشبع شرائي شديد ({rsi:.0f})")
+        elif rsi > 65:
+            score -= 1
+            reasons_bear.append(f"RSI مرتفع ({rsi:.0f})")
+        elif 50 <= rsi <= 60:
+            score += 0.5  # Neutral-bullish zone
+        
+        # RSI momentum (direction)
+        if not pd.isna(prev['RSI']):
+            if rsi > prev['RSI'] and rsi < 70:
+                score += 0.5
+            elif rsi < prev['RSI'] and rsi > 30:
+                score -= 0.5
+        
+        # === 5. MACD Analysis ===
+        if latest['MACD'] > latest['Signal_Line']:
+            score += 1
+            reasons_bull.append("MACD إيجابي")
+            if prev['MACD'] <= prev['Signal_Line']:
+                score += 1
+                reasons_bull.append("تقاطع MACD صاعد جديد!")
+        elif latest['MACD'] < latest['Signal_Line']:
+            score -= 1
+            reasons_bear.append("MACD سلبي")
+            if prev['MACD'] >= prev['Signal_Line']:
+                score -= 1
+                reasons_bear.append("تقاطع MACD هابط جديد!")
+
+        # MACD Histogram momentum
+        macd_hist_now = latest['MACD'] - latest['Signal_Line']
+        macd_hist_prev = prev['MACD'] - prev['Signal_Line']
+        if macd_hist_now > macd_hist_prev:
+            score += 0.5  # Increasing momentum
+        elif macd_hist_now < macd_hist_prev:
+            score -= 0.5
+            
+        # === 6. Bollinger Bands Position ===
+        if 'BB_Upper' in latest and 'BB_Lower' in latest:
+            if not pd.isna(latest['BB_Lower']) and not pd.isna(latest['BB_Upper']):
+                bb_width = latest['BB_Upper'] - latest['BB_Lower']
+                if bb_width > 0:
+                    bb_position = (latest['Close'] - latest['BB_Lower']) / bb_width
+                    if bb_position < 0.2:
+                        score += 1
+                        reasons_bull.append("السعر قرب الحد الأدنى لبولنجر")
+                    elif bb_position > 0.8:
+                        score -= 1
+                        reasons_bear.append("السعر قرب الحد الأعلى لبولنجر")
+        
+        # === 7. Consecutive Candles ===
+        if len(df) >= 3:
+            last_3 = df.tail(3)
+            green_count = sum(last_3['Close'] > last_3['Open'])
+            red_count = sum(last_3['Close'] < last_3['Open'])
+            if green_count == 3:
+                score += 1
+                reasons_bull.append("3 شموع خضراء متتالية")
+            elif red_count == 3:
+                score -= 1
+                reasons_bear.append("3 شموع حمراء متتالية")
+        
+        # === 8. Volume Analysis ===
+        if 'Volume' in df.columns and len(df) >= 20:
+            avg_vol = df['Volume'].tail(20).mean()
+            if avg_vol > 0 and latest['Volume'] > avg_vol * 1.5:
+                # High volume confirms the direction
+                if latest['Close'] > latest['Open']:
+                    score += 1
+                    reasons_bull.append("حجم تداول مرتفع مع صعود")
+                elif latest['Close'] < latest['Open']:
+                    score -= 1
+                    reasons_bear.append("حجم تداول مرتفع مع هبوط")
+        
+        # === 9. Stochastic Oscillator ===
+        if 'Stoch_K' in latest and not pd.isna(latest['Stoch_K']):
+            stoch_k = latest['Stoch_K']
+            stoch_d = latest['Stoch_D'] if not pd.isna(latest.get('Stoch_D', float('nan'))) else stoch_k
+            if stoch_k < 20:
+                score += 1
+                reasons_bull.append(f"Stochastic تشبع بيعي ({stoch_k:.0f})")
+            elif stoch_k > 80:
+                score -= 1
+                reasons_bear.append(f"Stochastic تشبع شرائي ({stoch_k:.0f})")
+            # Stochastic crossover
+            if stoch_k > stoch_d and stoch_k < 50:
+                score += 0.5
+            elif stoch_k < stoch_d and stoch_k > 50:
+                score -= 0.5
+
+        # === 10. ADX (Trend Strength) ===
+        if 'ADX' in latest and not pd.isna(latest['ADX']):
+            adx_val = latest['ADX']
+            plus_di = latest.get('Plus_DI', 0)
+            minus_di = latest.get('Minus_DI', 0)
+            if adx_val > 25:
+                # Strong trend — follow direction
+                if not pd.isna(plus_di) and not pd.isna(minus_di):
+                    if plus_di > minus_di:
+                        score += 1
+                        reasons_bull.append(f"اتجاه قوي صاعد (ADX={adx_val:.0f})")
+                    elif minus_di > plus_di:
+                        score -= 1
+                        reasons_bear.append(f"اتجاه قوي هابط (ADX={adx_val:.0f})")
+
+        # === 11. VWAP Position (intraday key level) ===
+        if 'VWAP' in latest and not pd.isna(latest.get('VWAP', float('nan'))):
+            if latest['Close'] > latest['VWAP']:
+                score += 0.5
+                reasons_bull.append("السعر فوق VWAP")
+            elif latest['Close'] < latest['VWAP']:
+                score -= 0.5
+                reasons_bear.append("السعر تحت VWAP")
+
+        # === 12. EMA9 Short-term momentum ===
+        if 'EMA9' in latest and not pd.isna(latest['EMA9']):
+            if latest['Close'] > latest['EMA9'] and latest['EMA9'] > latest['EMA20']:
+                score += 0.5
+                reasons_bull.append("زخم قصير المدى إيجابي (EMA9)")
+            elif latest['Close'] < latest['EMA9'] and latest['EMA9'] < latest['EMA20']:
+                score -= 0.5
+                reasons_bear.append("زخم قصير المدى سلبي (EMA9)")
+        
+        # === Determine Final Signal ===
         close_price = latest['Close']
-        atr = latest['ATR'] if not pd.isna(latest['ATR']) else (close_price * 0.02) # Fallback if ATR is NaN
+        atr = latest['ATR'] if not pd.isna(latest['ATR']) else (close_price * 0.02)
         
         support = latest['Support'] if 'Support' in latest and not pd.isna(latest['Support']) else close_price * 0.95
         resistance = latest['Resistance'] if 'Resistance' in latest and not pd.isna(latest['Resistance']) else close_price * 1.05
         
-        if score >= 2:
-            signal = "Buy (شراء)"
+        levels = {}
+        
+        # Trend strength classification
+        adx_val = latest.get('ADX', 0) if not pd.isna(latest.get('ADX', float('nan'))) else 0
+        if adx_val > 40:
+            trend_strength = "قوي جداً 🔥"
+        elif adx_val > 25:
+            trend_strength = "قوي 💪"
+        elif adx_val > 15:
+            trend_strength = "متوسط ⚡"
+        else:
+            trend_strength = "ضعيف 😴"
+        
+        if score >= 4:
+            signal = "Strong Buy (شراء قوي) 🟢🟢"
+            levels = {
+                "Entry": close_price,
+                "SL": close_price - (1.5 * atr),
+                "TP": close_price + (4 * atr)
+            }
+        elif score >= 1.5:
+            signal = "Buy (شراء) 🟢"
             levels = {
                 "Entry": close_price,
                 "SL": close_price - (2 * atr),
-                "TP": close_price + (4 * atr)
+                "TP": close_price + (3 * atr)
             }
-        elif score <= -2:
-            signal = "Sell (بيع)"
+        elif score <= -4:
+            signal = "Strong Sell (بيع قوي) 🔴🔴"
+            levels = {
+                "Entry": close_price,
+                "SL": close_price + (1.5 * atr),
+                "TP": close_price - (4 * atr)
+            }
+        elif score <= -1.5:
+            signal = "Sell (بيع) 🔴"
             levels = {
                 "Entry": close_price,
                 "SL": close_price + (2 * atr),
-                "TP": close_price - (4 * atr)
+                "TP": close_price - (3 * atr)
             }
+        else:
+            signal = "Hold (انتظار/مراقبة) 🟡"
             
         levels["Support"] = support
         levels["Resistance"] = resistance
+        levels["score"] = score
+        levels["trend_strength"] = trend_strength
+        levels["reasons_bull"] = reasons_bull
+        levels["reasons_bear"] = reasons_bear
             
         return signal, levels
 
@@ -242,12 +557,18 @@ class StockEngine:
     def get_options_data(self):
         """Fetches and summarizes options data for the nearest expiration."""
         try:
-            expirations = self.ticker.options
+            target_ticker = self.ticker
+            # Use SPY options for SPX index requests because SPX options may be restricted or flaky
+            if self.original_ticker.upper() in ['SPX', '^SPX']:
+                import yfinance as yf
+                target_ticker = yf.Ticker('SPY')
+
+            expirations = target_ticker.options
             if not expirations:
                 return None
                 
             nearest_expiry = expirations[0]
-            chain = self.ticker.option_chain(nearest_expiry)
+            chain = target_ticker.option_chain(nearest_expiry)
             
             calls = chain.calls
             puts = chain.puts

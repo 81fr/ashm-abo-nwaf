@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snap Plus Admin - لوحة التحكم</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="admin_style.css">
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fab fa-snapchat"></i>
+                <span>Snap<span>Admin</span></span>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="active"><i class="fas fa-home"></i> الرئيسية</a>
+                <a href="#"><i class="fas fa-users"></i> المشتركين</a>
+                <a href="#"><i class="fas fa-key"></i> مفاتيح التفعيل</a>
+                <a href="#"><i class="fas fa-shield-alt"></i> نظام الحماية</a>
+                <a href="#"><i class="fas fa-cog"></i> الإعدادات</a>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn-logout"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="top-bar">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="بحث عن مشترك أو مفتاح...">
+                </div>
+                <div class="admin-profile">
+                    <span class="status-online"></span>
+                    <div class="admin-info">
+                        <p class="name">المدير العام</p>
+                        <p class="role">Snap Plus Admin</p>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Stats Cards -->
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <div class="icon users"><i class="fas fa-users"></i></div>
+                    <div class="data">
+                        <h3>1,284</h3>
+                        <p>إجمالي المشتركين</p>
+                    </div>
+                    <span class="trend up">+12%</span>
+                </div>
+                <div class="stat-card">
+                    <div class="icon active-keys"><i class="fas fa-key"></i></div>
+                    <div class="data">
+                        <h3>856</h3>
+                        <p>المفاتيح النشطة</p>
+                    </div>
+                    <span class="trend up">+5%</span>
+                </div>
+                <div class="stat-card">
+                    <div class="icon protection"><i class="fas fa-shield-halved"></i></div>
+                    <div class="data">
+                        <h3>99.9%</h3>
+                        <p>معدل الأمان</p>
+                    </div>
+                    <span class="trend stable">مستقر</span>
+                </div>
+                <div class="stat-card">
+                    <div class="icon updates"><i class="fas fa-cloud-arrow-up"></i></div>
+                    <div class="data">
+                        <h3>v1.0.5</h3>
+                        <p>آخر إصدار</p>
+                    </div>
+                    <span class="trend info">محدث</span>
+                </div>
+            </section>
+
+            <!-- Table Section -->
+            <section class="table-section">
+                <div class="section-header">
+                    <h2>آخر العمليات</h2>
+                    <button class="btn-action">توليد مفاتيح جديدة <i class="fas fa-plus"></i></button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>المشترك</th>
+                                <th>نوع الاشتراك</th>
+                                <th>تاريخ البدء</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="user-cell">
+                                        <div class="avatar">AN</div>
+                                        <span>أحمد ناصر</span>
+                                    </div>
+                                </td>
+                                <td>سنوي (Premium)</td>
+                                <td>2026-05-01</td>
+                                <td><span class="badge active">نشط</span></td>
+                                <td>
+                                    <button class="btn-icon"><i class="fas fa-edit"></i></button>
+                                    <button class="btn-icon delete"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="user-cell">
+                                        <div class="avatar">KA</div>
+                                        <span>خالد الحربي</span>
+                                    </div>
+                                </td>
+                                <td>شهري</td>
+                                <td>2026-04-28</td>
+                                <td><span class="badge expired">منتهي</span></td>
+                                <td>
+                                    <button class="btn-icon"><i class="fas fa-edit"></i></button>
+                                    <button class="btn-icon delete"><i class="fas fa-trash"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="admin_app.js"></script>
+</body>
+</html>

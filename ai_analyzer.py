@@ -191,11 +191,31 @@ class AIAnalyzer:
         if not self.api_key:
              return "Note: Groq API Key missing." if lang == "en" else "ملاحظة: مفتاح Groq API غير متوفر."
 
-        current_price = technical_data['Close'].iloc[-1] if technical_data is not None and not technical_data.empty else 0
-        rsi = technical_data['RSI'].iloc[-1] if technical_data is not None and not technical_data.empty else 0
-        macd = technical_data['MACD'].iloc[-1] if technical_data is not None and not technical_data.empty else 0
-        support = technical_data['Low'].rolling(window=20).min().iloc[-1] if technical_data is not None and not technical_data.empty else 0
-        resistance = technical_data['High'].rolling(window=20).max().iloc[-1] if technical_data is not None and not technical_data.empty else 0
+        latest = technical_data.iloc[-1] if technical_data is not None and not technical_data.empty else None
+        if latest is None:
+            return "لا توجد بيانات كافية للتحليل."
+        
+        import pandas as pd
+        current_price = latest['Close']
+        rsi = latest['RSI'] if not pd.isna(latest.get('RSI', float('nan'))) else 0
+        macd = latest['MACD'] if not pd.isna(latest.get('MACD', float('nan'))) else 0
+        signal_line = latest['Signal_Line'] if not pd.isna(latest.get('Signal_Line', float('nan'))) else 0
+        stoch_k = latest.get('Stoch_K', 0) if not pd.isna(latest.get('Stoch_K', float('nan'))) else 0
+        adx = latest.get('ADX', 0) if not pd.isna(latest.get('ADX', float('nan'))) else 0
+        vwap = latest.get('VWAP', 0) if not pd.isna(latest.get('VWAP', float('nan'))) else 0
+        ema9 = latest.get('EMA9', 0) if not pd.isna(latest.get('EMA9', float('nan'))) else 0
+        ema20 = latest.get('EMA20', 0) if not pd.isna(latest.get('EMA20', float('nan'))) else 0
+        ema50 = latest.get('EMA50', 0) if not pd.isna(latest.get('EMA50', float('nan'))) else 0
+        support = technical_data['Low'].rolling(window=20).min().iloc[-1] if technical_data is not None else 0
+        resistance = technical_data['High'].rolling(window=20).max().iloc[-1] if technical_data is not None else 0
+        
+        # Fundamental summary
+        pe = info.get('trailingPE', 'N/A')
+        eps = info.get('trailingEps', 'N/A')
+        profit_margin = info.get('profitMargins', None)
+        pm_str = f"{profit_margin*100:.1f}%" if profit_margin else "N/A"
+        market_cap = info.get('marketCap', None)
+        mc_str = f"${market_cap/1e9:.1f}B" if market_cap and market_cap > 1e9 else "N/A"
 
         # Enforce highly strict max hold times
         hold_time_rules = {
@@ -218,13 +238,23 @@ class AIAnalyzer:
             generation_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         )
 
+        tech_block = f"""
+المؤشرات الفنية الكاملة:
+- السعر: ${current_price:.2f} | EMA9: ${ema9:.2f} | EMA20: ${ema20:.2f} | EMA50: ${ema50:.2f}
+- RSI: {rsi:.1f} | Stochastic %K: {stoch_k:.1f} | ADX: {adx:.1f}
+- MACD: {macd:.4f} | Signal: {signal_line:.4f} | {'تقاطع صاعد' if macd > signal_line else 'تقاطع هابط'}
+- VWAP: ${vwap:.2f} | السعر {'فوق' if current_price > vwap else 'تحت'} VWAP
+- الدعم: ${support:.2f} | المقاومة: ${resistance:.2f}
+البيانات الأساسية:
+- P/E: {pe} | EPS: {eps} | هامش الربح: {pm_str} | القيمة السوقية: {mc_str}
+"""
+
         prompt_en = f"""
         Analyze the US stock {ticker} ({info.get('longName', ticker)}) on the {tf_title} timeframe.
-        Current Price: ${current_price:.2f}
-        RSI: {rsi:.2f}, MACD: {macd:.2f}
+        {tech_block}
         Shariah Status: {shariah_status}
 
-        You are a top-tier financial advisor for beginners. 
+        You are a top-tier financial advisor for beginners.
         CRITICAL: For 'Suggested Exit Time / Max Hold', it {hold_instruction}.
         
         You MUST return TWO parts in your response:
@@ -245,11 +275,10 @@ class AIAnalyzer:
 
         prompt_ar = f"""
         حلل السهم الأمريكي {ticker} ({info.get('longName', ticker)}) على الإطار الزمني {tf_title}.
-        السعر الحالي: ${current_price:.2f}
-        RSI: {rsi:.2f}, MACD: {macd:.2f}
+        {tech_block}
         الوضع الشرعي: {shariah_status}
 
-        أنت مستشار مالي خبير يوجه المبتدئين. 
+        أنت مستشار مالي خبير يوجه المبتدئين. استخدم جميع المؤشرات الفنية أعلاه في تحليلك.
         تنبيه هام: للحقل 'وقت الخروج المقترح (أقصى مدة)'، {hold_instruction}.
         
         يجب أن تعيد جزئين في ردك:
@@ -470,7 +499,8 @@ class AIAnalyzer:
         3. 💡 نصيحة الخبير للمبتدئين (Consultant's Tip)
         
         Keep it concise, professional, and encouraging. Use Arabic only. 
-        Format it in HTML with nice styles for a dashboard popup.
+        Format it in HTML.
+        CRITICAL STYLING RULE: You MUST design the HTML with a STRICT DARK THEME. Use dark backgrounds (like #222 or transparent) and light text (like #eee or #fff). DO NOT use white backgrounds or light theme colors, as they will render the text invisible!
         """
         
         try:

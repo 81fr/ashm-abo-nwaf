@@ -1013,90 +1013,412 @@ def chat():
             analyzer = AIAnalyzer(api_key=api_key) 
             ai_insight = analyzer.get_ai_insight(ticker, engine.info, hist, compliance_reason, lang=lang)
             
-            # 2. Charts
-            fig = go.Figure()
+            # 1c. Market Pulse (SPX + VIX context)
+            market_pulse_html = ""
+            try:
+                spx_t = yf.Ticker("^GSPC")
+                spx_d = spx_t.history(period="2d")
+                vix_t = yf.Ticker("^VIX")
+                vix_d = vix_t.history(period="1d")
+                
+                if len(spx_d) >= 2 and len(vix_d) >= 1:
+                    spx_change = ((spx_d['Close'].iloc[-1] - spx_d['Close'].iloc[-2]) / spx_d['Close'].iloc[-2]) * 100
+                    spx_color = '#26a69a' if spx_change >= 0 else '#ef5350'
+                    spx_arrow = '▲' if spx_change >= 0 else '▼'
+                    vix_val = vix_d['Close'].iloc[-1]
+                    vix_color = '#26a69a' if vix_val < 20 else '#f0c040' if vix_val < 30 else '#ef5350'
+                    vix_label = 'هادئ' if vix_val < 20 else 'حذر' if vix_val < 30 else 'خوف!'
+                    
+                    market_pulse_html = f"""
+                    <div style="display:flex;gap:8px;margin-bottom:10px;font-size:0.82em;">
+                        <div style="flex:1;background:rgba(255,255,255,0.04);padding:8px 12px;border-radius:8px;text-align:center;border:1px solid rgba(255,255,255,0.06);">
+                            <span style="color:#aaa;">S&P 500</span><br>
+                            <b style="color:{spx_color};">{spx_arrow} {spx_change:+.2f}%</b>
+                        </div>
+                        <div style="flex:1;background:rgba(255,255,255,0.04);padding:8px 12px;border-radius:8px;text-align:center;border:1px solid rgba(255,255,255,0.06);">
+                            <span style="color:#aaa;">VIX (الخوف)</span><br>
+                            <b style="color:{vix_color};">{vix_val:.1f} — {vix_label}</b>
+                        </div>
+                    </div>
+                    """
+            except:
+                pass
+            
+            # 1b. Candlestick Patterns & Fibonacci
+            candle_patterns = engine.detect_candlestick_patterns(hist)
+            fib_levels = engine.calculate_fibonacci_levels(hist)
+            
+            # 2. Charts (Expert Technical Chart with Volume)
+            fig = make_subplots(rows=4, cols=1, shared_xaxes=True, 
+                                vertical_spacing=0.025, subplot_titles=(None, 'RSI (14)', 'MACD', 'حجم التداول'), 
+                                row_width=[0.12, 0.15, 0.15, 0.58])
+
+            # Row 1: Main Price Chart (Candlestick + EMAs + Bollinger Bands + VWAP)
             fig.add_trace(go.Candlestick(x=hist.index,
                             open=hist['Open'], high=hist['High'],
-                            low=hist['Low'], close=hist['Close'], name='Price'))
-            fig.add_trace(go.Scatter(x=hist.index, y=hist['EMA20'], name='EMA 20', line=dict(color='orange', width=1)))
-            fig.add_trace(go.Scatter(x=hist.index, y=hist['EMA50'], name='EMA 50', line=dict(color='blue', width=1)))
+                            low=hist['Low'], close=hist['Close'], name='السعر',
+                            increasing_line_color='#26a69a', decreasing_line_color='#ef5350'), 
+                            row=1, col=1)
             
+            fig.add_trace(go.Scatter(x=hist.index, y=hist['EMA9'], name='EMA 9', line=dict(color='#ff6b6b', width=1, dash='dot')), row=1, col=1)
+            fig.add_trace(go.Scatter(x=hist.index, y=hist['EMA20'], name='EMA 20', line=dict(color='orange', width=1.5)), row=1, col=1)
+            fig.add_trace(go.Scatter(x=hist.index, y=hist['EMA50'], name='EMA 50', line=dict(color='#4dabf7', width=1.5)), row=1, col=1)
+
+            # VWAP
+            if 'VWAP' in hist.columns:
+                fig.add_trace(go.Scatter(x=hist.index, y=hist['VWAP'], name='VWAP', line=dict(color='#ffd43b', width=2, dash='dashdot')), row=1, col=1)
+
+            # Bollinger Bands
+            fig.add_trace(go.Scatter(x=hist.index, y=hist['BB_Upper'], name='BB Upper', line=dict(color='rgba(173, 216, 230, 0.4)', width=1, dash='dash')), row=1, col=1)
+            fig.add_trace(go.Scatter(x=hist.index, y=hist['BB_Lower'], name='BB Lower', line=dict(color='rgba(173, 216, 230, 0.4)', width=1, dash='dash'), fill='tonexty', fillcolor='rgba(173, 216, 230, 0.08)'), row=1, col=1)
+
             if levels:
                 if 'TP' in levels:
-                    fig.add_hline(y=levels['TP'], line_dash="dash", line_color="green", annotation_text="TP", annotation_position="top right")
+                    fig.add_hline(y=levels['TP'], line_dash="dash", line_color="green", annotation_text="الهدف", annotation_position="top left", row=1, col=1)
                 if 'SL' in levels:
-                    fig.add_hline(y=levels['SL'], line_dash="dash", line_color="red", annotation_text="SL", annotation_position="bottom right")
+                    fig.add_hline(y=levels['SL'], line_dash="dash", line_color="red", annotation_text="الوقف", annotation_position="bottom left", row=1, col=1)
                 if 'Entry' in levels:
-                    fig.add_hline(y=levels['Entry'], line_dash="dot", line_color="white", annotation_text="Entry")
+                    fig.add_hline(y=levels['Entry'], line_dash="dot", line_color="gray", annotation_text="الدخول", annotation_position="top left", row=1, col=1)
                 
-                # Also add support and resistance to full chart if available
+                # Support and resistance
                 if 'Resistance' in levels and not pd.isna(levels['Resistance']):
-                    fig.add_hline(y=levels['Resistance'], line_dash="solid", line_color="rgba(255,0,0,0.3)", line_width=2, annotation_text="مقاومة")
+                    fig.add_hline(y=levels['Resistance'], line_dash="solid", line_color="rgba(255,0,0,0.3)", line_width=2, annotation_text="مقاومة", annotation_position="left", row=1, col=1)
                 if 'Support' in levels and not pd.isna(levels['Support']):
-                    fig.add_hline(y=levels['Support'], line_dash="solid", line_color="rgba(0,255,0,0.3)", line_width=2, annotation_text="دعم")
+                    fig.add_hline(y=levels['Support'], line_dash="solid", line_color="rgba(0,255,0,0.3)", line_width=2, annotation_text="دعم", annotation_position="left", row=1, col=1)
+
+            # Row 2: RSI
+            fig.add_trace(go.Scatter(x=hist.index, y=hist['RSI'], name='RSI', line=dict(color='#9775fa', width=1.5)), row=2, col=1)
+            fig.add_hline(y=70, line_dash="dash", line_color="red", line_width=1, row=2, col=1)
+            fig.add_hline(y=30, line_dash="dash", line_color="green", line_width=1, row=2, col=1)
+            fig.add_hrect(y0=30, y1=70, fillcolor="purple", opacity=0.04, layer="below", line_width=0, row=2, col=1)
+
+            # Row 3: MACD
+            macd_hist = hist['MACD'] - hist['Signal_Line']
+            colors = ['#26a69a' if val >= 0 else '#ef5350' for val in macd_hist]
+            fig.add_trace(go.Bar(x=hist.index, y=macd_hist, name='Histogram', marker_color=colors), row=3, col=1)
+            fig.add_trace(go.Scatter(x=hist.index, y=hist['MACD'], name='MACD', line=dict(color='#339af0', width=1.5)), row=3, col=1)
+            fig.add_trace(go.Scatter(x=hist.index, y=hist['Signal_Line'], name='Signal', line=dict(color='#ff922b', width=1.5)), row=3, col=1)
+
+            # Row 4: Volume
+            if 'Volume' in hist.columns:
+                vol_colors = ['#26a69a' if hist['Close'].iloc[i] >= hist['Open'].iloc[i] else '#ef5350' for i in range(len(hist))]
+                fig.add_trace(go.Bar(x=hist.index, y=hist['Volume'], name='حجم التداول', marker_color=vol_colors, opacity=0.7), row=4, col=1)
+
+            # Fibonacci Retracement Lines on main chart
+            fib_colors = {'23.6%': '#ff9800', '38.2%': '#2196f3', '50.0%': '#9c27b0', '61.8%': '#f44336', '78.6%': '#4caf50'}
+            for level_name, level_val in fib_levels.items():
+                if level_name in fib_colors:
+                    fig.add_hline(y=level_val, line_dash='dot', line_color=fib_colors[level_name], line_width=1, 
+                                 annotation_text=f'Fib {level_name}', annotation_position='right',
+                                 annotation_font_size=9, annotation_font_color=fib_colors[level_name],
+                                 row=1, col=1)
 
             fig.update_layout(
-                title=f'تحليل {ticker} - {tf_title}',
-                yaxis_title='السعر',
-                template="plotly_dark",
-                height=600,
-                margin=dict(l=15, r=15, t=50, b=15),
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='white', size=13),
+                title=dict(text=f'التحليل الفني الاحترافي - {ticker} ({tf_title})', font=dict(color='black', size=18)),
+                template="plotly_white",
+                height=850,
+                margin=dict(l=15, r=50, t=50, b=15),
+                paper_bgcolor='#ffffff',
+                plot_bgcolor='#ffffff',
+                font=dict(color='black', size=12),
                 xaxis_rangeslider_visible=False,
-                xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)'),
-                yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)', tickformat=".2f")
+                xaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', tickfont=dict(color='black')),
+                xaxis2=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', tickfont=dict(color='black')),
+                xaxis3=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', tickfont=dict(color='black')),
+                xaxis4=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', tickfont=dict(color='black')),
+                yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', tickformat=".2f", tickfont=dict(color='black'), side="right"),
+                yaxis2=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', range=[0, 100], tickvals=[30, 50, 70], tickfont=dict(color='black'), side="right"),
+                yaxis3=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', tickfont=dict(color='black'), side="right"),
+                yaxis4=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', tickfont=dict(color='black'), side="right"),
+                showlegend=False,
+                hovermode='x unified'
             )
             chart_json = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
             
-            # 3. Trade Levels Formatting
+            # 3. Extract analysis details
+            score = levels.get('score', 0)
+            trend_strength = levels.get('trend_strength', 'N/A')
+            reasons_bull = levels.get('reasons_bull', [])
+            reasons_bear = levels.get('reasons_bear', [])
+            
+            # Price change
+            if len(hist) >= 2:
+                prev_close = hist.iloc[-2]['Close']
+                price_change = latest['Close'] - prev_close
+                price_change_pct = (price_change / prev_close) * 100
+                change_color = '#26a69a' if price_change >= 0 else '#ef5350'
+                change_arrow = '▲' if price_change >= 0 else '▼'
+            else:
+                price_change = 0
+                price_change_pct = 0
+                change_color = '#888'
+                change_arrow = '—'
+            
+            # Stochastic values
+            stoch_k = f"{latest.get('Stoch_K', 0):.0f}" if not pd.isna(latest.get('Stoch_K', float('nan'))) else 'N/A'
+            stoch_d = f"{latest.get('Stoch_D', 0):.0f}" if not pd.isna(latest.get('Stoch_D', float('nan'))) else 'N/A'
+            adx_val = f"{latest.get('ADX', 0):.0f}" if not pd.isna(latest.get('ADX', float('nan'))) else 'N/A'
+            vwap_val = f"${latest.get('VWAP', 0):.2f}" if 'VWAP' in latest and not pd.isna(latest.get('VWAP', float('nan'))) else 'N/A'
+            bb_pos = ''
+            if not pd.isna(latest.get('BB_Upper', float('nan'))) and not pd.isna(latest.get('BB_Lower', float('nan'))):
+                bb_w = latest['BB_Upper'] - latest['BB_Lower']
+                if bb_w > 0:
+                    bb_pct = ((latest['Close'] - latest['BB_Lower']) / bb_w) * 100
+                    bb_pos = f"{bb_pct:.0f}%"
+                else:
+                    bb_pos = 'N/A'
+            else:
+                bb_pos = 'N/A'
+            
+            # Trade details
             trade_details = ""
             if levels and 'TP' in levels:
+                risk = abs(levels['Entry'] - levels['SL'])
+                reward = abs(levels['TP'] - levels['Entry'])
+                rr_ratio = f"{reward/risk:.1f}" if risk > 0 else "N/A"
                 trade_details = f"""
-                <div style="margin: 10px 0; background: #2a2a2a; padding: 10px; border-radius: 5px; border-right: 3px solid {'#28a745' if 'Buy' in rec_signal else '#dc3545'};">
-                    <h4 style="margin: 0 0 5px 0; color: #fff;">🎯 أهداف الصفقة</h4>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.9em;">
-                        <span style="color: #28a745;">ربح: ${levels['TP']:.2f}</span>
-                        <span style="color: #dc3545;">وقف: ${levels['SL']:.2f}</span>
-                        <span style="color: #17a2b8;">دخول: ${levels['Entry']:.2f}</span>
+                <div style="margin: 12px 0; background: linear-gradient(135deg, #1a2a1a, #1a1a2a); padding: 15px; border-radius: 10px; border-right: 4px solid {'#26a69a' if 'Buy' in rec_signal else '#ef5350'};">
+                    <h4 style="margin: 0 0 10px 0; color: #fff; font-size: 1em;">🎯 مستويات الصفقة</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; text-align: center;">
+                        <div style="background: rgba(38,166,154,0.15); padding: 10px; border-radius: 8px;">
+                            <div style="color: #aaa; font-size: 0.75em;">الهدف (TP)</div>
+                            <div style="color: #26a69a; font-weight: bold; font-size: 1.1em;">${levels['TP']:.2f}</div>
+                        </div>
+                        <div style="background: rgba(100,149,237,0.15); padding: 10px; border-radius: 8px;">
+                            <div style="color: #aaa; font-size: 0.75em;">الدخول</div>
+                            <div style="color: #6495ed; font-weight: bold; font-size: 1.1em;">${levels['Entry']:.2f}</div>
+                        </div>
+                        <div style="background: rgba(239,83,80,0.15); padding: 10px; border-radius: 8px;">
+                            <div style="color: #aaa; font-size: 0.75em;">وقف الخسارة (SL)</div>
+                            <div style="color: #ef5350; font-weight: bold; font-size: 1.1em;">${levels['SL']:.2f}</div>
+                        </div>
+                    </div>
+                    <div style="text-align: center; margin-top: 8px; color: #ccc; font-size: 0.85em;">
+                        📐 نسبة المخاطرة/العائد: <b style="color: #f0c040;">{rr_ratio}:1</b>
                     </div>
                 </div>
                 """
+            
+            # Candlestick Patterns HTML
+            patterns_html = ""
+            if candle_patterns:
+                p_items = "".join([f"<div style='background:rgba(255,255,255,0.04);padding:8px 12px;border-radius:8px;margin:4px 0;border-right:3px solid {'#26a69a' if d=='\u0635\u0639\u0648\u062f\u064a' else '#ef5350' if d=='\u0647\u0628\u0648\u0637\u064a' else '#f0c040'};'><b>{n}</b><br><span style='font-size:0.8em;color:#aaa;'>{desc}</span></div>" for n, d, desc in candle_patterns])
+                patterns_html = f"""<div style="margin-bottom:12px;"><b style="color:#f0c040;">🕯️ أنماط الشموع اليابانية المكتشفة:</b>{p_items}</div>"""
+            
+            # Fibonacci HTML
+            fib_html = ""
+            if fib_levels:
+                close_price_val = latest['Close']
+                nearest_fib = min(fib_levels.items(), key=lambda x: abs(x[1] - close_price_val))
+                fib_items = "".join([f"<span style='display:inline-block;background:rgba(255,255,255,0.05);padding:4px 8px;border-radius:4px;margin:2px;font-size:0.8em;{'border:1px solid #f0c040;' if k==nearest_fib[0] else ''}'>{k}: ${v:.2f}</span>" for k, v in fib_levels.items()])
+                fib_html = f"""<div style="margin-bottom:12px;"><b style="color:#f0c040;">📐 مستويات فيبوناتشي:</b><div style="margin-top:5px;">{fib_items}</div><div style="font-size:0.75em;color:#aaa;margin-top:4px;">📍 أقرب مستوى للسعر: <b style="color:#f0c040;">{nearest_fib[0]} (${nearest_fib[1]:.2f})</b></div></div>"""
+            
+            # Reasons breakdown
+            bull_html = ""
+            bear_html = ""
+            if reasons_bull:
+                bull_items = "".join([f"<li style='color:#26a69a; margin:3px 0; font-size:0.85em;'>✅ {r}</li>" for r in reasons_bull[:5]])
+                bull_html = f"<div style='flex:1;'><b style='color:#26a69a;'>إشارات إيجابية ({len(reasons_bull)})</b><ul style='list-style:none;padding:0;margin:5px 0;'>{bull_items}</ul></div>"
+            if reasons_bear:
+                bear_items = "".join([f"<li style='color:#ef5350; margin:3px 0; font-size:0.85em;'>⛔ {r}</li>" for r in reasons_bear[:5]])
+                bear_html = f"<div style='flex:1;'><b style='color:#ef5350;'>إشارات سلبية ({len(reasons_bear)})</b><ul style='list-style:none;padding:0;margin:5px 0;'>{bear_items}</ul></div>"
+            
+            # 4a. Build Fundamental Analysis Table
+            info = engine.info
+            
+            def fmt_number(val, prefix='', suffix='', decimals=2):
+                if val is None or val == 'N/A':
+                    return 'N/A'
+                try:
+                    num = float(val)
+                    if abs(num) >= 1e12:
+                        return f"{prefix}{num/1e12:.{decimals}f}T{suffix}"
+                    elif abs(num) >= 1e9:
+                        return f"{prefix}{num/1e9:.{decimals}f}B{suffix}"
+                    elif abs(num) >= 1e6:
+                        return f"{prefix}{num/1e6:.{decimals}f}M{suffix}"
+                    else:
+                        return f"{prefix}{num:.{decimals}f}{suffix}"
+                except:
+                    return str(val)
+            
+            def color_val(val, good_thresh, bad_thresh, lower_is_better=False):
+                try:
+                    v = float(val)
+                    if lower_is_better:
+                        if v <= good_thresh: return '#26a69a'
+                        elif v >= bad_thresh: return '#ef5350'
+                    else:
+                        if v >= good_thresh: return '#26a69a'
+                        elif v <= bad_thresh: return '#ef5350'
+                except:
+                    pass
+                return '#fff'
+            
+            pe = info.get('trailingPE', None)
+            fwd_pe = info.get('forwardPE', None)
+            pb = info.get('priceToBook', None)
+            eps = info.get('trailingEps', None)
+            revenue = info.get('totalRevenue', None)
+            profit_margin = info.get('profitMargins', None)
+            debt_equity = info.get('debtToEquity', None)
+            dividend_yield = info.get('dividendYield', None)
+            beta_val = info.get('beta', None)
+            market_cap = info.get('marketCap', None)
+            avg_volume = info.get('averageVolume', None)
+            week52_high = info.get('fiftyTwoWeekHigh', None)
+            week52_low = info.get('fiftyTwoWeekLow', None)
+            roe = info.get('returnOnEquity', None)
+            company_name = info.get('longName', ticker)
+            sector = info.get('sector', 'N/A')
+            industry = info.get('industry', 'N/A')
+            
+            # Fundamental Score (0-100)
+            fund_score = 50
+            if pe and pe > 0:
+                if pe < 15: fund_score += 10
+                elif pe < 25: fund_score += 5
+                elif pe > 40: fund_score -= 10
+            if profit_margin and profit_margin > 0.15: fund_score += 10
+            elif profit_margin and profit_margin < 0: fund_score -= 15
+            if debt_equity and debt_equity < 50: fund_score += 10
+            elif debt_equity and debt_equity > 150: fund_score -= 10
+            if roe and roe > 0.15: fund_score += 10
+            elif roe and roe < 0: fund_score -= 10
+            if dividend_yield and dividend_yield > 0.02: fund_score += 5
+            fund_score = max(0, min(100, fund_score))
+            
+            if fund_score >= 70: fund_color = '#26a69a'
+            elif fund_score >= 40: fund_color = '#f0c040'
+            else: fund_color = '#ef5350'
+            
+            # 52-week position
+            w52_pos = ''
+            if week52_high and week52_low:
+                try:
+                    w52_range = week52_high - week52_low
+                    if w52_range > 0:
+                        w52_pct = ((latest['Close'] - week52_low) / w52_range) * 100
+                        w52_pos = f" ({w52_pct:.0f}% من النطاق)"
+                except: pass
+            
+            def row_html(label, value, icon='', val_color='#fff'):
+                return f"<tr style='border-bottom:1px solid rgba(255,255,255,0.05);'><td style='padding:10px 12px;color:#d4af37;font-weight:600;white-space:nowrap;'>{icon} {label}</td><td style='padding:10px 12px;color:{val_color};font-weight:500;text-align:left;'>{value}</td></tr>"
+            
+            fundamental_table = f"""
+            <div style="margin-bottom:12px;">
+                <table style="width:100%;border-collapse:collapse;background:linear-gradient(135deg,#111827,#0f172a);border-radius:12px;overflow:hidden;border:1px solid rgba(212,175,55,0.2);font-size:0.88em;" dir="rtl">
+                    <thead>
+                        <tr style="background:linear-gradient(135deg,#d4af37,#aa8529);">
+                            <th colspan="2" style="padding:12px;color:#000;font-size:1.05em;text-align:center;">
+                                📋 التحليل الأساسي — {company_name}
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {row_html('الشركة / القطاع', f'{sector} — {industry}', '🏢')}
+                        {row_html('القيمة السوقية', fmt_number(market_cap, '$'), '💎')}
+                        {row_html('مكرر الأرباح P/E', f'{pe:.1f}' if pe else 'N/A', '📊', color_val(pe, 20, 40, True) if pe else '#fff')}
+                        {row_html('مكرر الأرباح المستقبلي', f'{fwd_pe:.1f}' if fwd_pe else 'N/A', '🔮', color_val(fwd_pe, 18, 35, True) if fwd_pe else '#fff')}
+                        {row_html('السعر / القيمة الدفترية P/B', f'{pb:.2f}' if pb else 'N/A', '📚', color_val(pb, 3, 8, True) if pb else '#fff')}
+                        {row_html('ربحية السهم EPS', f'${eps:.2f}' if eps else 'N/A', '💵', '#26a69a' if eps and eps > 0 else '#ef5350')}
+                        {row_html('الإيرادات', fmt_number(revenue, '$'), '📈')}
+                        {row_html('هامش الربح', f'{profit_margin*100:.1f}%' if profit_margin else 'N/A', '✂️', color_val(profit_margin, 0.15, 0, False) if profit_margin else '#fff')}
+                        {row_html('العائد على حقوق الملكية ROE', f'{roe*100:.1f}%' if roe else 'N/A', '🏦', color_val(roe, 0.15, 0.05, False) if roe else '#fff')}
+                        {row_html('نسبة الدين/حقوق الملكية', f'{debt_equity:.0f}%' if debt_equity else 'N/A', '⚖️', color_val(debt_equity, 50, 150, True) if debt_equity else '#fff')}
+                        {row_html('توزيعات الأرباح', f'{dividend_yield*100:.2f}%' if dividend_yield else 'لا يوجد', '💰', '#26a69a' if dividend_yield and dividend_yield > 0 else '#888')}
+                        {row_html('معامل بيتا β', f'{beta_val:.2f}' if beta_val else 'N/A', '📉')}
+                        {row_html('نطاق 52 أسبوع', f'${week52_low:.2f} — ${week52_high:.2f}{w52_pos}' if week52_high and week52_low else 'N/A', '📏')}
+                        {row_html('متوسط حجم التداول', fmt_number(avg_volume), '📊')}
+                        <tr style="background:rgba(212,175,55,0.08);">
+                            <td style="padding:12px;color:#d4af37;font-weight:700;">⭐ قوة الأساسيات</td>
+                            <td style="padding:12px;text-align:left;">
+                                <div style="display:flex;align-items:center;gap:10px;">
+                                    <div style="flex:1;height:8px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;">
+                                        <div style="width:{fund_score}%;height:100%;background:{fund_color};border-radius:4px;"></div>
+                                    </div>
+                                    <b style="color:{fund_color};font-size:1.1em;">{fund_score}/100</b>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            """
             
             # 4. Construct Full Response
             rec_class = 'buy' if 'شراء' in rec_signal else 'sell' if 'بيع' in rec_signal else 'hold'
             
             response = f"""
             {market_alert}
-            <h3>📊 تقرير شامل: {ticker}</h3>
+            <div style="background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 12px; padding: 18px; margin-bottom: 10px; border: 1px solid rgba(240,192,64,0.2);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h3 style="margin:0; color: #f0c040;">📊 {ticker} — تحليل فني لحظي ({tf_title})</h3>
+                    <span style="color: {change_color}; font-weight: bold; font-size: 1.1em;">{change_arrow} {price_change_pct:+.2f}%</span>
+                </div>
+                
+                {market_pulse_html}
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                    <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                        <span style="color: #aaa; font-size: 0.8em;">💰 السعر</span><br>
+                        <b style="color: #fff; font-size: 1.2em;">${latest['Close']:.2f}</b>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+                        <span style="color: #aaa; font-size: 0.8em;">📈 قوة الاتجاه</span><br>
+                        <b style="color: #fff;">{trend_strength}</b>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; font-size: 0.85em;">
+                    <div style="background: rgba(128,0,128,0.1); padding: 8px; border-radius: 6px; text-align: center;">
+                        <span style="color: #aaa;">RSI</span><br>
+                        <b style="color: {'#ef5350' if latest['RSI'] > 70 else '#26a69a' if latest['RSI'] < 30 else '#fff'};">{latest['RSI']:.0f}</b>
+                    </div>
+                    <div style="background: rgba(0,100,200,0.1); padding: 8px; border-radius: 6px; text-align: center;">
+                        <span style="color: #aaa;">MACD</span><br>
+                        <b style="color: {'#26a69a' if latest['MACD'] > latest['Signal_Line'] else '#ef5350'};">{latest['MACD']:.3f}</b>
+                    </div>
+                    <div style="background: rgba(255,165,0,0.1); padding: 8px; border-radius: 6px; text-align: center;">
+                        <span style="color: #aaa;">Stochastic</span><br>
+                        <b style="color: {'#ef5350' if float(stoch_k if stoch_k != 'N/A' else 50) > 80 else '#26a69a' if float(stoch_k if stoch_k != 'N/A' else 50) < 20 else '#fff'};">{stoch_k}</b>
+                    </div>
+                    <div style="background: rgba(0,200,100,0.1); padding: 8px; border-radius: 6px; text-align: center;">
+                        <span style="color: #aaa;">ADX</span><br>
+                        <b style="color: #fff;">{adx_val}</b>
+                    </div>
+                    <div style="background: rgba(100,200,255,0.1); padding: 8px; border-radius: 6px; text-align: center;">
+                        <span style="color: #aaa;">VWAP</span><br>
+                        <b style="color: {'#26a69a' if latest['Close'] > latest.get('VWAP', latest['Close']) else '#ef5350'};">{vwap_val}</b>
+                    </div>
+                    <div style="background: rgba(173,216,230,0.1); padding: 8px; border-radius: 6px; text-align: center;">
+                        <span style="color: #aaa;">Bollinger</span><br>
+                        <b style="color: #fff;">{bb_pos}</b>
+                    </div>
+                </div>
+            </div>
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-                <div style="background: #333; padding: 8px; border-radius: 5px;">
-                    <strong>السعر:</strong> ${latest['Close']:.2f}
-                </div>
-                <div style="background: #333; padding: 8px; border-radius: 5px;">
-                    <strong>P/E:</strong> {engine.info.get('trailingPE', 'N/A')}
-                </div>
-                <div style="background: #333; padding: 8px; border-radius: 5px;">
-                    <strong>RSI:</strong> {latest['RSI']:.2f}
-                </div>
-                <div style="background: #333; padding: 8px; border-radius: 5px;">
-                    <strong>MACD:</strong> {latest['MACD']:.3f}
-                </div>
+            <div class="recommendation-box {rec_class}" style="margin-bottom: 12px; padding: 12px; text-align: center; font-size: 1.1em; border-radius: 10px;">
+                {rec_signal}
+                <div style="font-size: 0.7em; color: #ccc; margin-top: 4px;">النقاط: {score:.1f}/12</div>
             </div>
-
-            <div style="margin-bottom: 10px;">
-                <strong>الوضع الشرعي:</strong> {compliance_reason} {'✅' if is_halal else '❌'}
-            </div>
-
+            
             {trade_details}
             
-            <div class="recommendation-box {rec_class}" style="margin-bottom: 15px;">
-                {rec_signal}
+            <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                {bull_html}
+                {bear_html}
             </div>
 
-            <div style="background: #222; padding: 10px; border-radius: 5px; font-size: 0.9em; line-height: 1.5;">
+            {patterns_html}
+            {fib_html}
+
+            {fundamental_table}
+
+            <div style="margin-bottom: 10px; font-size: 0.85em;">
+                <strong>الوضع الشرعي:</strong> {compliance_reason} {'✅' if is_halal else '❌'}
+            </div>
+            
+            <div style="background: #1a1a2e; padding: 12px; border-radius: 8px; font-size: 0.9em; line-height: 1.6; border-right: 3px solid #f0c040;">
                 <strong>🧠 رأي الذكاء الاصطناعي:</strong><br>
                 {ai_insight}
             </div>
