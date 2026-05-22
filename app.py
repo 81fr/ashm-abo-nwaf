@@ -654,15 +654,128 @@ def chat():
         
         if any(kw in user_message for kw in fundamental_keywords):
             is_halal, reason = engine.screen_shariah_compliance()
+            info = engine.info
+            
+            def fmt_num(val, prefix='', suffix='', decimals=2):
+                if val is None or val == 'N/A':
+                    return 'N/A'
+                try:
+                    num = float(val)
+                    if abs(num) >= 1e12: return f"{prefix}{num/1e12:.{decimals}f}T{suffix}"
+                    elif abs(num) >= 1e9: return f"{prefix}{num/1e9:.{decimals}f}B{suffix}"
+                    elif abs(num) >= 1e6: return f"{prefix}{num/1e6:.{decimals}f}M{suffix}"
+                    else: return f"{prefix}{num:.{decimals}f}{suffix}"
+                except: return str(val)
+            
+            def clr(val, good, bad, lower=False):
+                try:
+                    v = float(val)
+                    if lower:
+                        return '#26a69a' if v <= good else '#ef5350' if v >= bad else '#fff'
+                    else:
+                        return '#26a69a' if v >= good else '#ef5350' if v <= bad else '#fff'
+                except: return '#fff'
+            
+            pe = info.get('trailingPE', None)
+            fwd_pe = info.get('forwardPE', None)
+            pb = info.get('priceToBook', None)
+            eps_val = info.get('trailingEps', None)
+            revenue = info.get('totalRevenue', None)
+            profit_margin = info.get('profitMargins', None)
+            debt_equity = info.get('debtToEquity', None)
+            dividend_yield = info.get('dividendYield', None)
+            beta_v = info.get('beta', None)
+            market_cap = info.get('marketCap', None)
+            avg_volume = info.get('averageVolume', None)
+            week52_high = info.get('fiftyTwoWeekHigh', None)
+            week52_low = info.get('fiftyTwoWeekLow', None)
+            roe = info.get('returnOnEquity', None)
+            revenue_growth = info.get('revenueGrowth', None)
+            earnings_growth = info.get('earningsGrowth', None)
+            current_ratio = info.get('currentRatio', None)
+            free_cashflow = info.get('freeCashflow', None)
+            company_name = info.get('longName', ticker)
+            sector = info.get('sector', 'N/A')
+            industry = info.get('industry', 'N/A')
+            curr_price = info.get('currentPrice', info.get('regularMarketPrice', 0))
+            
+            # Fundamental Score
+            fs = 50
+            if pe and pe > 0:
+                if pe < 15: fs += 10
+                elif pe < 25: fs += 5
+                elif pe > 40: fs -= 10
+            if profit_margin and profit_margin > 0.15: fs += 10
+            elif profit_margin and profit_margin < 0: fs -= 15
+            if debt_equity and debt_equity < 50: fs += 10
+            elif debt_equity and debt_equity > 150: fs -= 10
+            if roe and roe > 0.15: fs += 10
+            elif roe and roe < 0: fs -= 10
+            if dividend_yield and dividend_yield > 0.02: fs += 5
+            if revenue_growth and revenue_growth > 0.1: fs += 5
+            if current_ratio and current_ratio > 1.5: fs += 5
+            fs = max(0, min(100, fs))
+            fc = '#26a69a' if fs >= 70 else '#f0c040' if fs >= 40 else '#ef5350'
+            
+            w52 = ''
+            if week52_high and week52_low:
+                try:
+                    rng = week52_high - week52_low
+                    if rng > 0 and curr_price:
+                        w52 = f" ({((curr_price - week52_low) / rng) * 100:.0f}% من النطاق)"
+                except: pass
+            
+            def rw(label, value, icon='', vc='#fff'):
+                return f"<tr style='border-bottom:1px solid rgba(255,255,255,0.05);'><td style='padding:10px 12px;color:#d4af37;font-weight:600;white-space:nowrap;'>{icon} {label}</td><td style='padding:10px 12px;color:{vc};font-weight:500;text-align:left;'>{value}</td></tr>"
+            
             response = f"""
-            📊 **التحليل الأساسي لـ {ticker}:**
-            
-            - **القطاع:** {engine.info.get('sector', 'N/A')}
-            - **الصناعة:** {engine.info.get('industry', 'N/A')}
-            - **القيمة السوقية:** ${engine.info.get('marketCap', 0)/1e9:.2f} مليار
-            - **مكرر الربحية (P/E):** {engine.info.get('trailingPE', 'N/A')}
-            
-            **الوضع الشرعي:** {reason} {'✅' if is_halal else '❌'}
+            <div style="margin-bottom:12px;">
+                <table style="width:100%;border-collapse:collapse;background:linear-gradient(135deg,#111827,#0f172a);border-radius:12px;overflow:hidden;border:1px solid rgba(212,175,55,0.2);font-size:0.88em;" dir="rtl">
+                    <thead>
+                        <tr style="background:linear-gradient(135deg,#d4af37,#aa8529);">
+                            <th colspan="2" style="padding:14px;color:#000;font-size:1.1em;text-align:center;">
+                                📋 التحليل الأساسي الشامل — {company_name} ({ticker})
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rw('الشركة / القطاع', f'{sector} — {industry}', '🏢')}
+                        {rw('السعر الحالي', f'${curr_price:.2f}' if curr_price else 'N/A', '💲', '#fff')}
+                        {rw('القيمة السوقية', fmt_num(market_cap, '$'), '💎')}
+                        {rw('مكرر الأرباح P/E', f'{pe:.1f}' if pe else 'N/A', '📊', clr(pe, 20, 40, True) if pe else '#fff')}
+                        {rw('مكرر الأرباح المستقبلي', f'{fwd_pe:.1f}' if fwd_pe else 'N/A', '🔮', clr(fwd_pe, 18, 35, True) if fwd_pe else '#fff')}
+                        {rw('السعر / القيمة الدفترية P/B', f'{pb:.2f}' if pb else 'N/A', '📚', clr(pb, 3, 8, True) if pb else '#fff')}
+                        {rw('ربحية السهم EPS', f'${eps_val:.2f}' if eps_val else 'N/A', '💵', '#26a69a' if eps_val and eps_val > 0 else '#ef5350')}
+                        {rw('الإيرادات', fmt_num(revenue, '$'), '📈')}
+                        {rw('نمو الإيرادات', f'{revenue_growth*100:.1f}%' if revenue_growth else 'N/A', '🚀', clr(revenue_growth, 0.1, 0, False) if revenue_growth else '#fff')}
+                        {rw('نمو الأرباح', f'{earnings_growth*100:.1f}%' if earnings_growth else 'N/A', '📊', clr(earnings_growth, 0.1, -0.1, False) if earnings_growth else '#fff')}
+                        {rw('هامش الربح', f'{profit_margin*100:.1f}%' if profit_margin else 'N/A', '✂️', clr(profit_margin, 0.15, 0, False) if profit_margin else '#fff')}
+                        {rw('العائد على حقوق الملكية ROE', f'{roe*100:.1f}%' if roe else 'N/A', '🏦', clr(roe, 0.15, 0.05, False) if roe else '#fff')}
+                        {rw('نسبة الدين/حقوق الملكية', f'{debt_equity:.0f}%' if debt_equity else 'N/A', '⚖️', clr(debt_equity, 50, 150, True) if debt_equity else '#fff')}
+                        {rw('النسبة الجارية', f'{current_ratio:.2f}' if current_ratio else 'N/A', '💧', clr(current_ratio, 1.5, 1, False) if current_ratio else '#fff')}
+                        {rw('التدفق النقدي الحر', fmt_num(free_cashflow, '$'), '💰', '#26a69a' if free_cashflow and free_cashflow > 0 else '#ef5350')}
+                        {rw('توزيعات الأرباح', f'{dividend_yield*100:.2f}%' if dividend_yield else 'لا يوجد', '🎁', '#26a69a' if dividend_yield and dividend_yield > 0 else '#888')}
+                        {rw('معامل بيتا β', f'{beta_v:.2f}' if beta_v else 'N/A', '📉')}
+                        {rw('نطاق 52 أسبوع', f'${week52_low:.2f} — ${week52_high:.2f}{w52}' if week52_high and week52_low else 'N/A', '📏')}
+                        {rw('متوسط حجم التداول', fmt_num(avg_volume), '📊')}
+                        <tr style="background:rgba(212,175,55,0.08);">
+                            <td style="padding:12px;color:#d4af37;font-weight:700;">⭐ قوة الأساسيات</td>
+                            <td style="padding:12px;text-align:left;">
+                                <div style="display:flex;align-items:center;gap:10px;">
+                                    <div style="flex:1;height:10px;background:rgba(255,255,255,0.1);border-radius:5px;overflow:hidden;">
+                                        <div style="width:{fs}%;height:100%;background:{fc};border-radius:5px;transition:width 1s;"></div>
+                                    </div>
+                                    <b style="color:{fc};font-size:1.2em;">{fs}/100</b>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr style="background:rgba(255,255,255,0.02);">
+                            <td style="padding:12px;color:#d4af37;font-weight:600;">🕌 الوضع الشرعي</td>
+                            <td style="padding:12px;color:{'#26a69a' if is_halal else '#ef5350'};font-weight:600;">{reason} {'✅' if is_halal else '❌'}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
             """
             
         elif any(kw in user_message for kw in technical_keywords):

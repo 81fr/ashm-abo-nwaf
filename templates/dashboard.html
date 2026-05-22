@@ -570,39 +570,72 @@
             animation: slideUpFade 0.5s ease;
         }
 
-        @media (max-width: 992px) {
-            .dashboard-layout {
-                flex-direction: column;
-            }
+        /* Hamburger Menu Button */
+        .hamburger-btn {
+            display: none;
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 1100;
+            background: rgba(212,175,55,0.15);
+            border: 1px solid rgba(212,175,55,0.3);
+            color: var(--primary-gold);
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            font-size: 1.3rem;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        .hamburger-btn:hover { background: rgba(212,175,55,0.3); }
+        
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 999;
+            backdrop-filter: blur(3px);
+        }
+        .sidebar-overlay.active { display: block; }
 
+        @media (max-width: 992px) {
+            .hamburger-btn { display: flex; align-items: center; justify-content: center; }
+            
             .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-                padding: 1.5rem;
-                box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+                position: fixed;
+                width: 280px;
+                height: 100vh;
+                transform: translateX(100%);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                z-index: 1000;
             }
+            .sidebar.open { transform: translateX(0); }
 
             .main-content {
-                margin-right: 0;
-                margin-left: 0;
-                width: 100%;
-                padding: 1.5rem;
+                margin-right: 0 !important;
+                margin-left: 0 !important;
+                width: 100% !important;
+                padding: 1rem !important;
+                padding-top: 70px !important;
             }
 
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-            }
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .top-bar { flex-wrap: wrap; gap: 10px; }
+        }
 
-            .nav-menu {
-                flex-direction: row;
-                overflow-x: auto;
-                padding-bottom: 5px;
-            }
-
-            .nav-link {
-                white-space: nowrap;
-            }
+        @media (max-width: 576px) {
+            .quick-actions { flex-wrap: wrap; }
+            .action-pill { font-size: 0.75rem; padding: 6px 12px; }
+            .page-title { font-size: 1.3rem; }
+            .message-bubble { font-size: 0.8rem; padding: 10px 12px; }
+            .chat-input-wrapper { padding: 8px; gap: 6px; }
+            .chat-input-wrapper input { padding: 8px; font-size: 0.85rem; }
+            #plotly-chart { height: 550px !important; }
+            .panel-card { padding: 1rem; }
+            .timeframe-select { padding: 8px; font-size: 0.8rem; }
         }
 
         .message-bot h3,
@@ -779,6 +812,10 @@
 </head>
 
 <body dir="{{ 'rtl' if lang == 'ar' else 'ltr' }}">
+    <button class="hamburger-btn" id="hamburger-btn" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
     <div class="dashboard-layout">
 
         <!-- Sidebar Navigation -->
@@ -1032,9 +1069,14 @@
 
                 <!-- AI Chat Interface -->
                 <div class="panel-card chat-container" style="grid-column: span 2;">
-                    <div class="panel-header">
-                        <i class="fas fa-robot"></i>
-                        <h3>{{ t.ai_advisor }}</h3>
+                    <div class="panel-header" style="display:flex;justify-content:space-between;">
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <i class="fas fa-robot"></i>
+                            <h3>{{ t.ai_advisor }}</h3>
+                        </div>
+                        <button onclick="clearChat()" style="background:none;border:1px solid rgba(255,77,77,0.3);color:#ff4d4d;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:0.78rem;transition:all 0.3s;display:flex;align-items:center;gap:6px;font-family:inherit;" onmouseover="this.style.background='rgba(255,77,77,0.15)'" onmouseout="this.style.background='none'">
+                            <i class="fas fa-trash-alt"></i> مسح
+                        </button>
                     </div>
 
                     <div class="chat-messages" id="chat-messages">
@@ -1187,10 +1229,14 @@
             indicatorDiv.id = 'typing-indicator-bubble';
             indicatorDiv.className = 'message-bubble message-bot';
             indicatorDiv.innerHTML = `
-                <div class="typing-indicator">
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div style="width:35px;height:35px;border-radius:50%;background:linear-gradient(135deg,#d4af37,#8c7322);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class='fas fa-robot' style='color:#000;font-size:0.9rem;'></i>
+                    </div>
+                    <div>
+                        <div style="font-size:0.82em;color:#d4af37;margin-bottom:6px;font-weight:600;">جاري التحليل الاحترافي...</div>
+                        <div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
+                    </div>
                 </div>
             `;
             messagesContainer.appendChild(indicatorDiv);
@@ -1290,8 +1336,27 @@
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('message-bubble', `message-${sender}`);
             messageDiv.innerHTML = text;
+            const timestamp = new Date().toLocaleTimeString('ar-SA', {hour: '2-digit', minute:'2-digit'});
+            const timeSpan = document.createElement('div');
+            timeSpan.style.cssText = 'font-size:0.7em;color:#555;margin-top:6px;text-align:' + (sender === 'user' ? 'left' : 'right');
+            timeSpan.textContent = timestamp;
+            messageDiv.appendChild(timeSpan);
             messagesContainer.appendChild(messageDiv);
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        function clearChat() {
+            const messages = document.getElementById('chat-messages');
+            messages.innerHTML = '';
+            const chartWrapper = document.getElementById('chart-wrapper');
+            if (chartWrapper) chartWrapper.style.display = 'none';
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
         }
 
         document.getElementById('user-input').addEventListener('keypress', function (e) {
