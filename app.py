@@ -46,6 +46,28 @@ _rate_limits = {}
 _RATE_LIMIT_MAX = 20  # max requests per minute
 _RATE_LIMIT_WINDOW = 60  # seconds
 
+# Smart Market Data Cache (5-minute TTL)
+_market_cache = {}
+_CACHE_TTL = 300  # 5 minutes
+
+def get_cached_market_data(symbol, period="2d"):
+    """Fetches market data with caching to avoid redundant API calls."""
+    cache_key = f"{symbol}_{period}"
+    now = _time.time()
+    if cache_key in _market_cache:
+        data, timestamp = _market_cache[cache_key]
+        if now - timestamp < _CACHE_TTL:
+            return data
+    try:
+        t = yf.Ticker(symbol)
+        data = t.history(period=period)
+        if data is not None and not data.empty:
+            _market_cache[cache_key] = (data, now)
+            return data
+    except:
+        pass
+    return _market_cache.get(cache_key, (None, 0))[0]
+
 def check_rate_limit(username):
     now = _time.time()
     if username not in _rate_limits:
@@ -1126,13 +1148,11 @@ def chat():
             analyzer = AIAnalyzer(api_key=api_key) 
             ai_insight = analyzer.get_ai_insight(ticker, engine.info, hist, compliance_reason, lang=lang)
             
-            # 1c. Market Pulse (SPX + VIX context)
+            # 1c. Market Pulse (SPX + VIX context) — using cache
             market_pulse_html = ""
             try:
-                spx_t = yf.Ticker("^GSPC")
-                spx_d = spx_t.history(period="2d")
-                vix_t = yf.Ticker("^VIX")
-                vix_d = vix_t.history(period="1d")
+                spx_d = get_cached_market_data("^GSPC", "2d")
+                vix_d = get_cached_market_data("^VIX", "1d")
                 
                 if len(spx_d) >= 2 and len(vix_d) >= 1:
                     spx_change = ((spx_d['Close'].iloc[-1] - spx_d['Close'].iloc[-2]) / spx_d['Close'].iloc[-2]) * 100

@@ -1,6 +1,9 @@
 import os
+import logging
 from openai import OpenAI
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 BEGINNER_SUMMARY_HTML = """
 <div style="background: linear-gradient(135deg, #1a1a1a, #0a0a0a); border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-family: 'Cairo', sans-serif;" dir="rtl">
@@ -299,6 +302,40 @@ class AIAnalyzer:
 
         prompt = prompt_en if lang == "en" else prompt_ar
 
+        # Auto-analysis fallback function
+        def generate_fallback():
+            """Generates a smart fallback when AI is unavailable."""
+            verdict = "انتظار"
+            v_color = "#f1c40f"
+            if rsi < 30 and macd > signal_line:
+                verdict = "شراء قوي"; v_color = "#2ecc71"
+            elif rsi < 45 and macd > signal_line and current_price > vwap:
+                verdict = "شراء"; v_color = "#2ecc71"
+            elif rsi > 70 and macd < signal_line:
+                verdict = "تجنب"; v_color = "#e74c3c"
+            elif rsi > 55 and macd < signal_line and current_price < vwap:
+                verdict = "حذر — بيع"; v_color = "#e74c3c"
+            
+            risk = "متوسطة"
+            r_color = "#f1c40f"
+            if adx > 25 and rsi < 60: risk = "منخفضة"; r_color = "#26a69a"
+            elif adx < 15: risk = "عالية"; r_color = "#ef5350"
+            
+            return f"""
+            <div style="background:linear-gradient(135deg,rgba(212,175,55,0.08),rgba(0,0,0,0.3));border:1px solid rgba(212,175,55,0.2);border-radius:12px;padding:16px;margin-bottom:12px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                    <span style="color:#d4af37;font-weight:700;">📊 التحليل الآلي السريع</span>
+                    <span style="background:{v_color};color:#000;padding:4px 14px;border-radius:15px;font-weight:700;font-size:0.85em;">{verdict}</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.82em;">
+                    <div style="background:rgba(0,0,0,0.3);padding:8px;border-radius:6px;">RSI: <b style="color:{'#ef5350' if rsi>70 else '#26a69a' if rsi<30 else '#fff'}">{rsi:.1f}</b></div>
+                    <div style="background:rgba(0,0,0,0.3);padding:8px;border-radius:6px;">ADX: <b>{adx:.1f}</b></div>
+                    <div style="background:rgba(0,0,0,0.3);padding:8px;border-radius:6px;">MACD: <b style="color:{'#26a69a' if macd>signal_line else '#ef5350'}">{macd:.4f}</b></div>
+                    <div style="background:rgba(0,0,0,0.3);padding:8px;border-radius:6px;">المخاطر: <b style="color:{r_color}">{risk}</b></div>
+                </div>
+            </div>
+            """
+
         try:
             if self.client:
                 response = self.client.chat.completions.create(
@@ -310,10 +347,16 @@ class AIAnalyzer:
                     temperature=0.3,
                     max_tokens=2000
                 )
-                return response.choices[0].message.content
-            return "Error: Groq client not initialized." if lang == "en" else "خطأ: لم يتم تهيئة الاتصال بـ Groq."
+                result = response.choices[0].message.content
+                # Validate HTML output
+                if '<' in result and '>' in result:
+                    return result
+                else:
+                    return generate_fallback()
+            return generate_fallback()
         except Exception as e:
-            return f"Error: {str(e)}" if lang == "en" else f"خطأ في توليد التحليل: {str(e)}"
+            logger.error(f"AI Analysis failed: {str(e)}")
+            return generate_fallback()
 
     def get_opportunities_insight(self, opportunities_list, tf_title="يومي", timeframe_val="1d"):
         """Generates an AI-driven report for a list of market opportunities."""

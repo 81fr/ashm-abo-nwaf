@@ -1343,6 +1343,43 @@
             messageDiv.appendChild(timeSpan);
             messagesContainer.appendChild(messageDiv);
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            // Save to localStorage
+            saveChatHistory();
+        }
+
+        function saveChatHistory() {
+            try {
+                const messages = document.getElementById('chat-messages');
+                const items = messages.querySelectorAll('.message-bubble:not(#welcome-guide)');
+                const history = [];
+                items.forEach(m => {
+                    if (m.id === 'typing-indicator-bubble') return;
+                    history.push({
+                        html: m.innerHTML,
+                        class: m.classList.contains('message-user') ? 'user' : 'bot'
+                    });
+                });
+                // Keep last 30 messages to avoid storage overflow
+                const trimmed = history.slice(-30);
+                localStorage.setItem('eagles_chat_history', JSON.stringify(trimmed));
+            } catch(e) {}
+        }
+
+        function restoreChatHistory() {
+            try {
+                const saved = localStorage.getItem('eagles_chat_history');
+                if (!saved) return;
+                const history = JSON.parse(saved);
+                if (!history || history.length === 0) return;
+                const messagesContainer = document.getElementById('chat-messages');
+                history.forEach(item => {
+                    const div = document.createElement('div');
+                    div.classList.add('message-bubble', `message-${item.class}`);
+                    div.innerHTML = item.html;
+                    messagesContainer.appendChild(div);
+                });
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'auto' });
+            } catch(e) {}
         }
 
         function clearChat() {
@@ -1350,6 +1387,7 @@
             messages.innerHTML = '';
             const chartWrapper = document.getElementById('chart-wrapper');
             if (chartWrapper) chartWrapper.style.display = 'none';
+            localStorage.removeItem('eagles_chat_history');
         }
 
         function toggleSidebar() {
@@ -1763,6 +1801,7 @@
         showMorningBriefing();
         loadPortfolio();
         loadEarnings();
+        restoreChatHistory();
 
         setInterval(checkAnnouncements, 60000); // Check every minute
         setInterval(loadTickets, 30000); // Check tickets every 30s

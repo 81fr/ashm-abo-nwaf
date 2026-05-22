@@ -100,6 +100,27 @@ class StockEngine:
         df['BB_Upper'] = df['BB_Middle'] + (df['BB_Std'] * 2)
         df['BB_Lower'] = df['BB_Middle'] - (df['BB_Std'] * 2)
         
+        # ATR (Average True Range — volatility measure)
+        tr1 = df['High'] - df['Low']
+        tr2 = abs(df['High'] - df['Close'].shift())
+        tr3 = abs(df['Low'] - df['Close'].shift())
+        tr_all = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+        df['ATR'] = tr_all.rolling(window=14).mean()
+        
+        # OBV (On-Balance Volume — volume momentum)
+        obv = [0]
+        for i in range(1, len(df)):
+            if df['Close'].iloc[i] > df['Close'].iloc[i-1]:
+                obv.append(obv[-1] + df['Volume'].iloc[i])
+            elif df['Close'].iloc[i] < df['Close'].iloc[i-1]:
+                obv.append(obv[-1] - df['Volume'].iloc[i])
+            else:
+                obv.append(obv[-1])
+        df['OBV'] = obv
+        
+        # Williams %R
+        df['Williams_R'] = ((high_14 - df['Close']) / (high_14 - low_14)) * -100
+        
         return df
 
     def screen_shariah_compliance(self):
