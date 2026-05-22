@@ -693,27 +693,49 @@ class StockEngine:
     @staticmethod
     def get_market_movers():
         """Fetches top gainers/losers from a sample of S&P 500."""
-        tickers = ["AAPL", "MSFT", "NVDA", "TSLA", "META", "AMZN", "GOOG", "AMD", "NFLX", "BRK-B", "JPM", "V", "UNH", "HD", "PG"]
+        tickers = ["AAPL", "MSFT", "NVDA", "TSLA", "META", "AMZN", "GOOG", "AMD", "NFLX", "JPM", "V", "UNH", "HD", "PG", "COST"]
         movers = []
         try:
-            data = yf.download(tickers, period="1d", group_by='ticker', silent=True)
+            data = yf.download(tickers, period="2d", group_by='ticker', progress=False, threads=True)
             for ticker in tickers:
-                if ticker not in data: continue
-                # Handle MultiIndex
                 try:
-                    ticker_data = data[ticker]
-                    open_p = ticker_data['Open'].iloc[0]
-                    close_p = ticker_data['Close'].iloc[0]
-                    change = ((close_p - open_p) / open_p) * 100
-                    movers.append({"ticker": ticker, "change": round(change, 2), "price": round(close_p, 2)})
+                    if ticker in data.columns.get_level_values(0):
+                        td = data[ticker].dropna()
+                        if len(td) >= 2:
+                            prev_close = td['Close'].iloc[-2]
+                            curr_close = td['Close'].iloc[-1]
+                            change = ((curr_close - prev_close) / prev_close) * 100
+                            movers.append({"ticker": ticker, "change": round(change, 2), "price": round(curr_close, 2)})
+                        elif len(td) == 1:
+                            open_p = td['Open'].iloc[0]
+                            close_p = td['Close'].iloc[0]
+                            if open_p > 0:
+                                change = ((close_p - open_p) / open_p) * 100
+                                movers.append({"ticker": ticker, "change": round(change, 2), "price": round(close_p, 2)})
+                except Exception:
+                    continue
+        except Exception:
+            # Fallback: fetch individually
+            for ticker in tickers[:8]:
+                try:
+                    t = yf.Ticker(ticker)
+                    h = t.history(period="2d")
+                    if h is not None and len(h) >= 2:
+                        prev = h['Close'].iloc[-2]
+                        curr = h['Close'].iloc[-1]
+                        change = ((curr - prev) / prev) * 100
+                        movers.append({"ticker": ticker, "change": round(change, 2), "price": round(curr, 2)})
                 except:
                     continue
-            
-            # Sort by change
-            movers.sort(key=lambda x: x['change'], reverse=True)
-            return movers[:5], movers[-5:] # Top 5 Gainers, Top 5 Losers
-        except Exception:
+        
+        if not movers:
             return [], []
+        
+        movers.sort(key=lambda x: x['change'], reverse=True)
+        gainers = [m for m in movers if m['change'] > 0][:5]
+        losers = [m for m in movers if m['change'] < 0]
+        losers.sort(key=lambda x: x['change'])
+        return gainers[:5], losers[:5]
 
     # --- DATA CACHE ---
     _cache = {}

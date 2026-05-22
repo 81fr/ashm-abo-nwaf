@@ -1812,21 +1812,51 @@ def close_trade():
 # --- Real Earnings Calendar ---
 @app.route('/api/earnings_calendar')
 def earnings_calendar():
-    tickers = ['AAPL', 'MSFT', 'NVDA', 'TSLA', 'GOOG', 'META', 'AMZN', 'AMD']
+    tickers = ['AAPL', 'MSFT', 'NVDA', 'TSLA', 'GOOG', 'META', 'AMZN', 'AMD', 'NFLX', 'JPM', 'V', 'UNH']
     earnings = []
     for sym in tickers:
         try:
             t = yf.Ticker(sym)
-            cal = t.calendar
-            if cal is not None and not cal.empty:
-                date = str(cal.iloc[0, 0]) if hasattr(cal, 'iloc') else str(cal)
-                earnings.append({'ticker': sym, 'date': date[:10]})
-            else:
-                info = t.info
-                if 'earningsDate' in info:
-                    earnings.append({'ticker': sym, 'date': str(info['earningsDate'])[:10]})
+            earnings_date = None
+            
+            # Method 1: t.calendar (can be dict or DataFrame)
+            try:
+                cal = t.calendar
+                if isinstance(cal, dict):
+                    ed = cal.get('Earnings Date', cal.get('earningsDate', None))
+                    if ed:
+                        if isinstance(ed, list) and len(ed) > 0:
+                            earnings_date = str(ed[0])[:10]
+                        else:
+                            earnings_date = str(ed)[:10]
+                elif cal is not None and hasattr(cal, 'iloc'):
+                    if not cal.empty:
+                        earnings_date = str(cal.iloc[0, 0])[:10]
+            except:
+                pass
+            
+            # Method 2: Fallback to info
+            if not earnings_date:
+                try:
+                    info = t.info
+                    ed_ts = info.get('earningsTimestamp', None)
+                    if ed_ts:
+                        from datetime import datetime as dt
+                        earnings_date = dt.fromtimestamp(ed_ts).strftime('%Y-%m-%d')
+                    elif 'earningsDate' in info:
+                        ed = info['earningsDate']
+                        if isinstance(ed, list) and len(ed) > 0:
+                            earnings_date = str(ed[0])[:10]
+                        else:
+                            earnings_date = str(ed)[:10]
+                except:
+                    pass
+            
+            if earnings_date and earnings_date != 'None' and earnings_date != 'N':
+                earnings.append({'ticker': sym, 'date': earnings_date})
         except Exception:
             pass
+    
     earnings.sort(key=lambda x: x.get('date', '9999'))
     return {"success": True, "earnings": earnings}
 
