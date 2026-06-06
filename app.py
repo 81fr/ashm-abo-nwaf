@@ -1083,6 +1083,16 @@ def chat():
                         <td style="padding: 10px;">{sup_val} / {res_val}</td>
                     </tr>
                     <tr style="border-bottom: 1px solid #444;">
+                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">📐 ATR (تقلب يومي)</td>
+                        <td style="padding: 10px; color: #aaa;">${latest.get('ATR', 0):.2f}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #444;">
+                        <td style="padding: 10px; font-weight: bold; color: #d4af37;">⚖️ Risk/Reward</td>
+                        <td style="padding: 10px; color: {'#26a69a' if levels and 'TP' in levels and 'SL' in levels and 'Entry' in levels and (levels['TP']-levels['Entry']) > 0 and (levels['Entry']-levels['SL']) > 0 and (levels['TP']-levels['Entry'])/(levels['Entry']-levels['SL']) >= 2 else '#f0c040' if levels and 'TP' in levels and 'SL' in levels and 'Entry' in levels and (levels['TP']-levels['Entry']) > 0 and (levels['Entry']-levels['SL']) > 0 else '#888'}; font-weight: bold;">
+                            {f"1:{((levels['TP']-levels['Entry'])/(levels['Entry']-levels['SL'])):.1f}" if levels and 'TP' in levels and 'SL' in levels and 'Entry' in levels and (levels['Entry']-levels['SL']) > 0 else 'N/A'}
+                        </td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #444;">
                         <td style="padding: 10px; font-weight: bold; color: #d4af37;">الأساسيات ونسبة التطهير</td>
                         <td style="padding: 10px; color: #f39c12; font-weight: bold;">{shariah_reason}</td>
                     </tr>
@@ -1094,8 +1104,84 @@ def chat():
             </table>
             """
 
+            # Smart Score — combines technical + fundamental into a visual gauge
+            tech_score = 50
+            try:
+                r = latest.get('RSI', 50)
+                if r < 30: tech_score += 15
+                elif r < 45: tech_score += 8
+                elif r > 70: tech_score -= 15
+                elif r > 55: tech_score -= 5
+                
+                if latest.get('MACD', 0) > latest.get('Signal_Line', 0): tech_score += 12
+                else: tech_score -= 8
+                
+                if latest['Close'] > latest.get('EMA20', latest['Close']): tech_score += 8
+                else: tech_score -= 5
+                
+                if latest.get('ADX', 0) > 25: tech_score += 5
+                
+                if latest['Close'] > latest.get('VWAP', latest['Close']): tech_score += 5
+                else: tech_score -= 3
+                
+                if latest.get('Stoch_K', 50) < 20: tech_score += 5
+                elif latest.get('Stoch_K', 50) > 80: tech_score -= 5
+            except: pass
+            tech_score = max(0, min(100, tech_score))
             
-            response = f"{market_alert}\n{table_html}"
+            smart_score = int((tech_score * 0.6) + (fund_score * 0.4))
+            ss_color = '#26a69a' if smart_score >= 70 else '#f0c040' if smart_score >= 45 else '#ef5350'
+            ss_label = 'شراء قوي 🟢' if smart_score >= 75 else 'شراء 🟢' if smart_score >= 60 else 'انتظار 🟡' if smart_score >= 45 else 'تجنب 🔴'
+            
+            # SVG Gauge
+            pct = smart_score / 100
+            dash = 251.2 * pct
+            gap = 251.2 * (1 - pct)
+            
+            # Volume trend
+            try:
+                vol_avg = hist['Volume'].rolling(20).mean().iloc[-1]
+                vol_now = hist['Volume'].iloc[-1]
+                vol_ratio = vol_now / vol_avg if vol_avg > 0 else 1
+                vol_label = 'مرتفع ↑' if vol_ratio > 1.3 else 'منخفض ↓' if vol_ratio < 0.7 else 'عادي'
+                vol_clr = '#26a69a' if vol_ratio > 1.3 else '#ef5350' if vol_ratio < 0.7 else '#888'
+            except:
+                vol_label = 'N/A'
+                vol_clr = '#888'
+            
+            adx_val = latest.get('ADX', 0)
+            adx_label = 'قوي' if adx_val > 25 else 'ضعيف'
+            macd_trend = 'صعودي' if latest.get('MACD', 0) > latest.get('Signal_Line', 0) else 'هبوطي'
+            macd_clr = '#26a69a' if macd_trend == 'صعودي' else '#ef5350'
+            
+            smart_card = f"""
+            <div style="background:linear-gradient(135deg,rgba(212,175,55,0.06),rgba(0,0,0,0.4));border:1px solid rgba(212,175,55,0.2);border-radius:16px;padding:20px;margin-bottom:15px;">
+                <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+                    <div style="text-align:center;flex-shrink:0;">
+                        <svg width="90" height="90" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
+                            <circle cx="50" cy="50" r="40" fill="none" stroke="{ss_color}" stroke-width="8" stroke-dasharray="{dash:.1f} {gap:.1f}" stroke-dashoffset="62.8" stroke-linecap="round" style="transition:all 1s;"/>
+                            <text x="50" y="47" text-anchor="middle" fill="{ss_color}" font-size="22" font-weight="bold">{smart_score}</text>
+                            <text x="50" y="62" text-anchor="middle" fill="#888" font-size="8">SCORE</text>
+                        </svg>
+                    </div>
+                    <div style="flex:1;min-width:200px;">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                            <h3 style="margin:0;color:#fff;font-size:1.1rem;">{engine.info.get('longName', ticker)}</h3>
+                            <span style="background:{ss_color};color:#000;padding:3px 12px;border-radius:12px;font-size:0.78em;font-weight:700;">{ss_label}</span>
+                        </div>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                            <span style="background:rgba(255,255,255,0.04);padding:4px 10px;border-radius:8px;font-size:0.75em;color:{'#ef5350' if latest.get('RSI',50)>70 else '#26a69a' if latest.get('RSI',50)<30 else '#aaa'};">RSI {latest.get('RSI',0):.0f}</span>
+                            <span style="background:rgba(255,255,255,0.04);padding:4px 10px;border-radius:8px;font-size:0.75em;color:{macd_clr};">MACD {macd_trend}</span>
+                            <span style="background:rgba(255,255,255,0.04);padding:4px 10px;border-radius:8px;font-size:0.75em;color:#aaa;">ADX {adx_val:.0f} ({adx_label})</span>
+                            <span style="background:rgba(255,255,255,0.04);padding:4px 10px;border-radius:8px;font-size:0.75em;color:{vol_clr};">Vol {vol_label}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            """
+            
+            response = f"{market_alert}\n{smart_card}\n{table_html}"
             
             return {"response": response, "chart": chart_json}
             
@@ -1228,7 +1314,47 @@ def chat():
             """
 
         elif is_greeting:
-             response = f"{t['welcome_msg']} {session['username']}! {t['bot_intro']}"
+            # Professional greeting with live market data
+            username = session.get('username', '')
+            hour = datetime.now().hour
+            time_greet = 'صباح الخير ☀️' if hour < 12 else 'مساء الخير 🌙' if hour < 18 else 'مساء النور ⭐'
+            
+            # Quick market pulse
+            market_html = ''
+            try:
+                spx_d = get_cached_market_data("^GSPC", "2d")
+                vix_d = get_cached_market_data("^VIX", "1d")
+                if spx_d is not None and len(spx_d) >= 2:
+                    spx_change = ((spx_d['Close'].iloc[-1] - spx_d['Close'].iloc[-2]) / spx_d['Close'].iloc[-2]) * 100
+                    spx_val = spx_d['Close'].iloc[-1]
+                    spx_color = '#26a69a' if spx_change >= 0 else '#ef5350'
+                    spx_arrow = '▲' if spx_change >= 0 else '▼'
+                    vix_val = vix_d['Close'].iloc[-1] if vix_d is not None and len(vix_d) >= 1 else 0
+                    vix_color = '#26a69a' if vix_val < 20 else '#f0c040' if vix_val < 30 else '#ef5350'
+                    market_html = f"""
+                    <div style="display:flex;gap:8px;margin:12px 0;font-size:0.82em;">
+                        <div style="flex:1;background:rgba(255,255,255,0.04);padding:8px;border-radius:8px;text-align:center;border:1px solid rgba(255,255,255,0.06);">
+                            <span style="color:#aaa;font-size:0.85em;">S&P 500</span><br>
+                            <b style="color:{spx_color};">{spx_arrow} {spx_val:,.0f} ({spx_change:+.2f}%)</b>
+                        </div>
+                        <div style="flex:1;background:rgba(255,255,255,0.04);padding:8px;border-radius:8px;text-align:center;border:1px solid rgba(255,255,255,0.06);">
+                            <span style="color:#aaa;font-size:0.85em;">VIX</span><br>
+                            <b style="color:{vix_color};">{vix_val:.1f}</b>
+                        </div>
+                    </div>"""
+            except: pass
+            
+            response = f"""
+            <div style="background:linear-gradient(135deg,rgba(212,175,55,0.06),rgba(0,0,0,0.3));border:1px solid rgba(212,175,55,0.2);border-radius:16px;padding:20px;">
+                <h3 style="color:#d4af37;margin:0 0 5px 0;">{time_greet} {username}</h3>
+                <p style="color:#aaa;margin:0 0 10px 0;font-size:0.9em;">أنا مستشارك الذكي. كيف أقدر أساعدك اليوم؟</p>
+                {market_html}
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+                    <span onclick="document.getElementById('user-input').value='TSLA';sendMessage();" style="background:rgba(212,175,55,0.1);color:#d4af37;padding:5px 12px;border-radius:15px;font-size:0.78em;cursor:pointer;border:1px solid rgba(212,175,55,0.2);">📊 تحليل سهم</span>
+                    <span onclick="document.getElementById('user-input').value='ابحث عن فرص';sendMessage();" style="background:rgba(46,204,113,0.1);color:#2ecc71;padding:5px 12px;border-radius:15px;font-size:0.78em;cursor:pointer;border:1px solid rgba(46,204,113,0.2);">🔍 فرص السوق</span>
+                    <span onclick="document.getElementById('user-input').value='قارن AAPL MSFT';sendMessage();" style="background:rgba(52,152,219,0.1);color:#3498db;padding:5px 12px;border-radius:15px;font-size:0.78em;cursor:pointer;border:1px solid rgba(52,152,219,0.2);">⚖️ مقارنة</span>
+                </div>
+            </div>"""
              
         else:
              # Default to Full Report if only ticker is mentioned (or no specific intent detected)
