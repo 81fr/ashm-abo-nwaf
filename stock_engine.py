@@ -765,61 +765,6 @@ class StockEngine:
             df['VWAP'] = df['Close']
         return df
 
-    # --- CANDLESTICK PATTERNS ---
-    def detect_candlestick_patterns(self, df):
-        """Detects Japanese candlestick patterns from the last 3 candles."""
-        patterns = []
-        if df is None or len(df) < 3:
-            return patterns
-        try:
-            c = df.iloc[-1]  # Current candle
-            p = df.iloc[-2]  # Previous candle
-            pp = df.iloc[-3] # Two candles ago
-
-            body = abs(c['Close'] - c['Open'])
-            upper_shadow = c['High'] - max(c['Close'], c['Open'])
-            lower_shadow = min(c['Close'], c['Open']) - c['Low']
-            candle_range = c['High'] - c['Low']
-
-            # Doji: body is very small relative to range
-            if candle_range > 0 and body / candle_range < 0.1:
-                patterns.append("دوجي (Doji) - تردد في السوق")
-
-            # Hammer: long lower shadow, small body at top
-            if body > 0 and lower_shadow > 2 * body and upper_shadow < body * 0.5:
-                patterns.append("مطرقة (Hammer) - إشارة انعكاس صعودي")
-
-            # Shooting Star: long upper shadow, small body at bottom
-            if body > 0 and upper_shadow > 2 * body and lower_shadow < body * 0.5:
-                patterns.append("نجمة ساقطة (Shooting Star) - إشارة انعكاس هبوطي")
-
-            # Bullish Engulfing
-            p_body = abs(p['Close'] - p['Open'])
-            if (p['Close'] < p['Open'] and  # Previous was red
-                c['Close'] > c['Open'] and   # Current is green
-                c['Open'] <= p['Close'] and c['Close'] >= p['Open'] and
-                body > p_body):
-                patterns.append("ابتلاع صعودي (Bullish Engulfing) - قوة شرائية")
-
-            # Bearish Engulfing
-            if (p['Close'] > p['Open'] and  # Previous was green
-                c['Close'] < c['Open'] and   # Current is red
-                c['Open'] >= p['Close'] and c['Close'] <= p['Open'] and
-                body > p_body):
-                patterns.append("ابتلاع هبوطي (Bearish Engulfing) - ضغط بيعي")
-
-            # Morning Star (3-candle bullish reversal)
-            pp_body = abs(pp['Close'] - pp['Open'])
-            if (pp['Close'] < pp['Open'] and  # First: red
-                p_body < pp_body * 0.3 and     # Second: small body (star)
-                c['Close'] > c['Open'] and     # Third: green
-                c['Close'] > (pp['Open'] + pp['Close']) / 2):
-                patterns.append("نجمة الصباح (Morning Star) - انعكاس صعودي قوي")
-
-        except Exception:
-            pass
-        return patterns
-
     # --- FIBONACCI RETRACEMENT ---
     def calculate_fibonacci_levels(self, df, period=60):
         """Calculates Fibonacci retracement levels from recent high/low."""
