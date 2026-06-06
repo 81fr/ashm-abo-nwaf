@@ -1407,6 +1407,48 @@ def chat():
             candle_patterns = engine.detect_candlestick_patterns(hist)
             fib_levels = engine.calculate_fibonacci_levels(hist)
             
+            # 1d. Multi-Timeframe Analysis (MTF)
+            mtf_results = []
+            mtf_timeframes = [('1h', '1mo', '⏱️ ساعة'), ('1d', '6mo', '📅 يومي'), ('1wk', '2y', '📆 أسبوعي')]
+            for mtf_tf, mtf_period, mtf_label in mtf_timeframes:
+                try:
+                    mtf_hist = engine.get_market_data(period=mtf_period, interval=mtf_tf)
+                    if mtf_hist is not None and len(mtf_hist) >= 20:
+                        mtf_hist = engine.calculate_technical_indicators(mtf_hist)
+                        mtf_sig, _ = engine.get_recommendation(mtf_hist)
+                        mtf_rsi = mtf_hist['RSI'].iloc[-1]
+                        mtf_macd = 'صعودي' if mtf_hist['MACD'].iloc[-1] > mtf_hist['Signal_Line'].iloc[-1] else 'هبوطي'
+                        mtf_results.append({'label': mtf_label, 'signal': mtf_sig, 'rsi': mtf_rsi, 'macd': mtf_macd})
+                except:
+                    pass
+            
+            # 1e. Smart Context Alerts
+            smart_alerts = []
+            try:
+                w52h = engine.info.get('fiftyTwoWeekHigh', 0)
+                w52l = engine.info.get('fiftyTwoWeekLow', 0)
+                curr = latest['Close']
+                if w52h and curr >= w52h * 0.95:
+                    smart_alerts.append(('🔝 قريب من أعلى 52 أسبوع!', '#ef5350'))
+                if w52l and curr <= w52l * 1.05:
+                    smart_alerts.append(('📉 قريب من أدنى 52 أسبوع — فرصة؟', '#26a69a'))
+                
+                avg_vol = engine.info.get('averageVolume', 0)
+                curr_vol = latest.get('Volume', 0) if not pd.isna(latest.get('Volume', 0)) else 0
+                if avg_vol > 0 and curr_vol > avg_vol * 2:
+                    smart_alerts.append(('🔊 حجم تداول غير اعتيادي (2x+)', '#f0c040'))
+                
+                if latest.get('RSI', 50) > 75:
+                    smart_alerts.append(('⚠️ تشبع شرائي شديد — احذر!', '#ef5350'))
+                elif latest.get('RSI', 50) < 25:
+                    smart_alerts.append(('💎 تشبع بيعي شديد — فرصة ذهبية!', '#26a69a'))
+                
+                beta = engine.info.get('beta', 1)
+                if beta and beta > 1.5:
+                    smart_alerts.append((f'🎢 سهم عالي التقلب (Beta: {beta:.1f})', '#f0c040'))
+            except:
+                pass
+            
             # 2. Charts (Expert Technical Chart with Volume)
             fig = make_subplots(rows=4, cols=1, shared_xaxes=True, 
                                 vertical_spacing=0.025, subplot_titles=(None, 'RSI (14)', 'MACD', 'حجم التداول'), 
@@ -1572,7 +1614,36 @@ def chat():
                 fib_items = "".join([f"<span style='display:inline-block;background:rgba(255,255,255,0.05);padding:4px 8px;border-radius:4px;margin:2px;font-size:0.8em;{'border:1px solid #f0c040;' if k==nearest_fib[0] else ''}'>{k}: ${v:.2f}</span>" for k, v in fib_levels.items()])
                 fib_html = f"""<div style="margin-bottom:12px;"><b style="color:#f0c040;">📐 مستويات فيبوناتشي:</b><div style="margin-top:5px;">{fib_items}</div><div style="font-size:0.75em;color:#aaa;margin-top:4px;">📍 أقرب مستوى للسعر: <b style="color:#f0c040;">{nearest_fib[0]} (${nearest_fib[1]:.2f})</b></div></div>"""
             
-            # Reasons breakdown
+            # Multi-Timeframe HTML
+            mtf_html = ""
+            if mtf_results:
+                mtf_rows = ""
+                for m in mtf_results:
+                    sig_c = '#26a69a' if 'Buy' in m['signal'] else '#ef5350' if 'Sell' in m['signal'] else '#f0c040'
+                    sig_short = '🟢 شراء' if 'Buy' in m['signal'] else '🔴 بيع' if 'Sell' in m['signal'] else '🟡 انتظار'
+                    macd_c = '#26a69a' if m['macd'] == 'صعودي' else '#ef5350'
+                    rsi_c = '#ef5350' if m['rsi'] > 70 else '#26a69a' if m['rsi'] < 30 else '#aaa'
+                    mtf_rows += f"<tr style='border-bottom:1px solid rgba(255,255,255,0.04);'><td style='padding:6px 8px;color:#d4af37;'>{m['label']}</td><td style='padding:6px 8px;color:{sig_c};font-weight:700;'>{sig_short}</td><td style='padding:6px 8px;color:{rsi_c};'>{m['rsi']:.0f}</td><td style='padding:6px 8px;color:{macd_c};'>{m['macd']}</td></tr>"
+                mtf_html = f"""
+                <div style="margin-bottom:12px;background:rgba(255,255,255,0.02);border-radius:10px;padding:12px;border:1px solid rgba(212,175,55,0.15);">
+                    <b style="color:#d4af37;font-size:0.9em;">🔭 تحليل متعدد الأطر الزمنية (MTF)</b>
+                    <table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:0.82em;">
+                        <thead><tr style="border-bottom:2px solid rgba(212,175,55,0.2);">
+                            <th style="padding:5px;color:#888;text-align:right;">الإطار</th>
+                            <th style="padding:5px;color:#888;">الإشارة</th>
+                            <th style="padding:5px;color:#888;">RSI</th>
+                            <th style="padding:5px;color:#888;">MACD</th>
+                        </tr></thead>
+                        <tbody>{mtf_rows}</tbody>
+                    </table>
+                </div>"""
+            
+            # Smart Alerts HTML
+            alerts_html = ""
+            if smart_alerts:
+                alerts_items = "".join([f"<span style='display:inline-block;background:rgba(0,0,0,0.3);border:1px solid {c};color:{c};padding:4px 10px;border-radius:15px;font-size:0.78em;margin:3px;'>{txt}</span>" for txt, c in smart_alerts])
+                alerts_html = f"""<div style="margin-bottom:12px;">{alerts_items}</div>"""
+            
             bull_html = ""
             bear_html = ""
             if reasons_bull:
@@ -1770,6 +1841,9 @@ def chat():
 
             {patterns_html}
             {fib_html}
+
+            {mtf_html}
+            {alerts_html}
 
             {fundamental_table}
 
