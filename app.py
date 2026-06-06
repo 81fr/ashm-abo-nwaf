@@ -611,6 +611,10 @@ def chat():
         compare_keywords = ["قارن", "مقارنة", "compare", "vs", "ضد", "مقابل", "ولا"]
         is_compare = any(kw in user_message for kw in compare_keywords)
         
+        # Sector heatmap keywords
+        sector_keywords = ["قطاع", "قطاعات", "sector", "sectors", "هيت ماب", "خريطة"]
+        is_sector = any(kw in user_message for kw in sector_keywords)
+        
         # Greeting keywords
         greeting_keywords = ["مرحبا", "هلا", "السلام", "أهلا", "اهلا", "هاي", "مساء", "صباح",
                             "hello", "hi", "hey", "مرحب"]
@@ -645,10 +649,59 @@ def chat():
                 <div style='background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;'>
                     <b style='color: #f1c40f;'>📋 عقود خيارات:</b> اكتب "خيارات AAPL" أو "أوبشن تسلا"
                 </div>
+                <div style='background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;'>
+                    <b style='color: #3498db;'>⚖️ مقارنة أسهم:</b> اكتب "قارن AAPL MSFT" أو "قارن تسلا انفيديا"
+                </div>
+                <div style='background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;'>
+                    <b style='color: #1abc9c;'>🗺️ خريطة القطاعات:</b> اكتب "قطاعات" أو "sector"
+                </div>
             </div>
             <p style='margin-top: 15px; color: #aaa; font-size: 0.85rem;'>💡 <b>نصيحة:</b> يمكنك الكتابة بالعربي أو الإنجليزي. مثلاً "تسلا" = "TSLA"</p>
             </div>"""
             return {"response": help_response}
+        elif is_sector and not ticker:
+            # Sector Heatmap
+            sector_etfs = {
+                'XLK': '💻 تكنولوجيا', 'XLF': '🏦 مالي', 'XLE': '⛽ طاقة',
+                'XLV': '💊 صحة', 'XLY': '🛍️ استهلاكي', 'XLI': '🏭 صناعي',
+                'XLP': '🥫 أساسيات', 'XLU': '⚡ خدمات', 'XLRE': '🏠 عقاري',
+                'XLC': '📡 اتصالات', 'XLB': '🧱 مواد'
+            }
+            sector_html = ""
+            sector_items = []
+            for etf, name in sector_etfs.items():
+                try:
+                    d = get_cached_market_data(etf, "5d")
+                    if d is not None and len(d) >= 2:
+                        chg = ((d['Close'].iloc[-1] - d['Close'].iloc[-2]) / d['Close'].iloc[-2]) * 100
+                        sector_items.append((name, chg, etf))
+                except:
+                    pass
+            
+            sector_items.sort(key=lambda x: x[1], reverse=True)
+            
+            grid = ""
+            for name, chg, etf in sector_items:
+                bg = f'rgba(38,166,154,{min(abs(chg)*0.15, 0.4)})' if chg >= 0 else f'rgba(239,83,80,{min(abs(chg)*0.15, 0.4)})'
+                color = '#26a69a' if chg >= 0 else '#ef5350'
+                arrow = '▲' if chg >= 0 else '▼'
+                grid += f"""<div style="background:{bg};padding:12px;border-radius:10px;text-align:center;border:1px solid {color}22;">
+                    <div style="font-size:0.85em;color:#ddd;margin-bottom:4px;">{name}</div>
+                    <div style="font-size:1.2em;font-weight:700;color:{color};">{arrow} {chg:+.2f}%</div>
+                    <div style="font-size:0.7em;color:#888;margin-top:2px;">{etf}</div>
+                </div>"""
+            
+            response = f"""
+            <div style="background:rgba(0,0,0,0.2);border-radius:16px;padding:20px;border:1px solid rgba(212,175,55,0.15);">
+                <h3 style="color:#d4af37;margin:0 0 15px 0;">🗺️ خريطة القطاعات — أداء اليوم</h3>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+                    {grid}
+                </div>
+                <div style="margin-top:12px;text-align:center;font-size:0.75em;color:#666;">
+                    اكتب اسم أي سهم من القطاع لتحليله 📊
+                </div>
+            </div>"""
+            return {"response": response}
         elif is_compare:
             # Stock comparison: extract two tickers
             all_tickers = re.findall(r'\b[A-Z]{2,5}\b', user_message)
@@ -1446,6 +1499,38 @@ def chat():
                 beta = engine.info.get('beta', 1)
                 if beta and beta > 1.5:
                     smart_alerts.append((f'🎢 سهم عالي التقلب (Beta: {beta:.1f})', '#f0c040'))
+                
+                # RSI Divergence Detection
+                if len(hist) >= 10:
+                    price_5 = hist['Close'].tail(10)
+                    rsi_5 = hist['RSI'].tail(10)
+                    price_min_idx = price_5.idxmin()
+                    price_max_idx = price_5.idxmax()
+                    
+                    # Bullish Divergence: price makes lower low, RSI makes higher low
+                    if (price_5.iloc[-1] < price_5.iloc[0] and 
+                        rsi_5.iloc[-1] > rsi_5.loc[price_min_idx] and
+                        rsi_5.iloc[-1] < 45):
+                        smart_alerts.append(('📈 دايفرجنس صعودي — RSI يعارض السعر!', '#26a69a'))
+                    
+                    # Bearish Divergence: price makes higher high, RSI makes lower high
+                    if (price_5.iloc[-1] > price_5.iloc[0] and 
+                        rsi_5.iloc[-1] < rsi_5.loc[price_max_idx] and
+                        rsi_5.iloc[-1] > 55):
+                        smart_alerts.append(('📉 دايفرجنس هبوطي — RSI يحذر!', '#ef5350'))
+                
+                # Analyst Price Target
+                target = engine.info.get('targetMeanPrice', None)
+                if target and curr > 0:
+                    upside = ((target - curr) / curr) * 100
+                    t_color = '#26a69a' if upside > 5 else '#ef5350' if upside < -5 else '#f0c040'
+                    smart_alerts.append((f'🎯 هدف المحللين: ${target:.0f} ({upside:+.1f}%)', t_color))
+                
+                # Sector performance context
+                sector = engine.info.get('sector', '')
+                if sector:
+                    smart_alerts.append((f'🏢 القطاع: {sector}', '#888'))
+                    
             except:
                 pass
             
@@ -1513,6 +1598,41 @@ def chat():
                                  annotation_text=f'Fib {level_name}', annotation_position='right',
                                  annotation_font_size=9, annotation_font_color=fib_colors[level_name],
                                  row=1, col=1)
+
+            # Pivot Points (Classic Floor Trader Method)
+            try:
+                if len(hist) >= 2:
+                    pp_high = hist['High'].iloc[-2]
+                    pp_low = hist['Low'].iloc[-2]
+                    pp_close = hist['Close'].iloc[-2]
+                    pp = (pp_high + pp_low + pp_close) / 3
+                    r1 = (2 * pp) - pp_low
+                    s1 = (2 * pp) - pp_high
+                    r2 = pp + (pp_high - pp_low)
+                    s2 = pp - (pp_high - pp_low)
+                    
+                    pivot_levels = [
+                        ('R2', r2, 'rgba(239,83,80,0.6)', 'dashdot'),
+                        ('R1', r1, 'rgba(239,83,80,0.4)', 'dash'),
+                        ('PP', pp, 'rgba(255,255,255,0.5)', 'solid'),
+                        ('S1', s1, 'rgba(46,204,113,0.4)', 'dash'),
+                        ('S2', s2, 'rgba(46,204,113,0.6)', 'dashdot'),
+                    ]
+                    for pname, pval, pcolor, pdash in pivot_levels:
+                        fig.add_hline(y=pval, line_dash=pdash, line_color=pcolor, line_width=1,
+                                     annotation_text=f'{pname} ${pval:.2f}', annotation_position='left',
+                                     annotation_font_size=8, annotation_font_color=pcolor,
+                                     row=1, col=1)
+            except:
+                pass
+
+            # Volume Moving Average (20-period) on Volume chart
+            try:
+                vol_ma = hist['Volume'].rolling(20).mean()
+                fig.add_trace(go.Scatter(x=hist.index, y=vol_ma, name='Vol MA20',
+                    line=dict(color='#f0c040', width=1.5, dash='dot')), row=4, col=1)
+            except:
+                pass
 
             fig.update_layout(
                 title=dict(text=f'التحليل الفني الاحترافي - {ticker} ({tf_title})', font=dict(color='black', size=18)),
