@@ -15,6 +15,7 @@ load_dotenv(override=True)
 
 from stock_engine import StockEngine
 from ai_analyzer import AIAnalyzer
+import auto_trader
 import json
 import yfinance as yf
 import plotly
@@ -2126,6 +2127,51 @@ def portfolio_analytics():
     
     metrics = StockEngine.calculate_portfolio_metrics(trades)
     return {"success": True, "metrics": metrics}
+
+# --- Auto Paper Trading API ---
+@app.route('/api/autotrade/toggle', methods=['POST'])
+def autotrade_toggle():
+    if 'username' not in session:
+        return {"success": False, "error": "Login required"}, 401
+    data = request.json or {}
+    enable = data.get('enable', True)
+    auto_trader.toggle(enable)
+    return {"success": True, "enabled": auto_trader.is_enabled()}
+
+@app.route('/api/autotrade/scan', methods=['POST'])
+def autotrade_scan():
+    if 'username' not in session:
+        return {"success": False, "error": "Login required"}, 401
+    if not auto_trader.is_enabled():
+        return {"success": False, "error": "التداول الآلي غير مفعل"}
+    result = auto_trader.scan_and_trade()
+    return {"success": True, **result}
+
+@app.route('/api/autotrade/status')
+def autotrade_status():
+    if 'username' not in session:
+        return {"success": False}, 401
+    stats = auto_trader.get_stats()
+    open_trades = auto_trader.get_open_trades()
+    # Update current prices for open trades
+    for t in open_trades:
+        try:
+            eng = StockEngine(t['ticker'])
+            h = eng.get_market_data(period="5d")
+            if h is not None and not h.empty:
+                t['current_price'] = round(h['Close'].iloc[-1], 2)
+                t['pnl'] = round((t['current_price'] - t['entry_price']) * t['shares'], 2)
+                t['pnl_pct'] = round(((t['current_price'] - t['entry_price']) / t['entry_price']) * 100, 2)
+        except:
+            pass
+    return {"success": True, "stats": stats, "open_trades": open_trades}
+
+@app.route('/api/autotrade/history')
+def autotrade_history():
+    if 'username' not in session:
+        return {"success": False}, 401
+    trades = auto_trader.get_all_trades(limit=30)
+    return {"success": True, "trades": trades}
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=5000)

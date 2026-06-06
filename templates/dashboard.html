@@ -1036,6 +1036,70 @@
                     </div>
                 </div>
 
+                <!-- Auto Paper Trading Panel -->
+                <div class="panel-card" style="grid-column: span 3;">
+                    <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <i class="fas fa-robot"></i>
+                            <h3>🤖 التداول الآلي التجريبي</h3>
+                            <span id="at-status-badge" style="padding:3px 10px;border-radius:12px;font-size:0.72em;font-weight:700;background:rgba(239,83,80,0.15);color:#ef5350;">معطل</span>
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <button id="at-toggle-btn" onclick="toggleAutoTrade()" style="background:rgba(46,204,113,0.15);color:#2ecc71;border:1px solid rgba(46,204,113,0.3);padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:0.82em;">
+                                <i class="fas fa-power-off"></i> تشغيل
+                            </button>
+                            <button onclick="scanAutoTrade()" id="at-scan-btn" style="background:rgba(212,175,55,0.15);color:#d4af37;border:1px solid rgba(212,175,55,0.3);padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:0.82em;">
+                                <i class="fas fa-search-dollar"></i> مسح السوق
+                            </button>
+                        </div>
+                    </div>
+                    <div style="padding:15px;">
+                        <!-- Stats Cards -->
+                        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:15px;" id="at-stats">
+                            <div style="background:rgba(255,255,255,0.03);padding:10px;border-radius:10px;text-align:center;border:1px solid rgba(255,255,255,0.05);">
+                                <div style="font-size:0.72em;color:#888;">رأس المال</div>
+                                <div id="at-capital" style="font-size:1.1em;font-weight:700;color:#d4af37;">$100,000</div>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.03);padding:10px;border-radius:10px;text-align:center;border:1px solid rgba(255,255,255,0.05);">
+                                <div style="font-size:0.72em;color:#888;">الربح/الخسارة</div>
+                                <div id="at-pnl" style="font-size:1.1em;font-weight:700;color:#888;">$0.00</div>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.03);padding:10px;border-radius:10px;text-align:center;border:1px solid rgba(255,255,255,0.05);">
+                                <div style="font-size:0.72em;color:#888;">العائد %</div>
+                                <div id="at-return" style="font-size:1.1em;font-weight:700;color:#888;">0.00%</div>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.03);padding:10px;border-radius:10px;text-align:center;border:1px solid rgba(255,255,255,0.05);">
+                                <div style="font-size:0.72em;color:#888;">نسبة الفوز</div>
+                                <div id="at-winrate" style="font-size:1.1em;font-weight:700;color:#888;">0%</div>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.03);padding:10px;border-radius:10px;text-align:center;border:1px solid rgba(255,255,255,0.05);">
+                                <div style="font-size:0.72em;color:#888;">الصفقات</div>
+                                <div id="at-trades-count" style="font-size:1.1em;font-weight:700;color:#888;">0</div>
+                            </div>
+                        </div>
+                        <!-- Open Trades -->
+                        <div style="overflow-x:auto;">
+                            <table style="width:100%;border-collapse:collapse;font-size:0.82em;" class="ai-table">
+                                <thead>
+                                    <tr style="background:rgba(212,175,55,0.08);">
+                                        <th style="padding:8px;color:#d4af37;text-align:right;">السهم</th>
+                                        <th style="padding:8px;color:#d4af37;">سعر الدخول</th>
+                                        <th style="padding:8px;color:#d4af37;">السعر الحالي</th>
+                                        <th style="padding:8px;color:#d4af37;">وقف الخسارة</th>
+                                        <th style="padding:8px;color:#d4af37;">الهدف</th>
+                                        <th style="padding:8px;color:#d4af37;">الكمية</th>
+                                        <th style="padding:8px;color:#d4af37;">P&L</th>
+                                        <th style="padding:8px;color:#d4af37;">Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="at-trades-body">
+                                    <tr><td colspan="8" style="text-align:center;padding:20px;color:#666;">فعّل التداول الآلي وامسح السوق لبدء الصفقات</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- My Portfolio Panel -->
                 <div class="panel-card" style="grid-column: span 3;">
                     <div class="panel-header">
@@ -1425,6 +1489,130 @@
                 const trimmed = history.slice(-30);
                 localStorage.setItem('eagles_chat_history', JSON.stringify(trimmed));
             } catch(e) {}
+        }
+
+        // --- Auto Paper Trading ---
+        let autoTradeEnabled = false;
+
+        async function toggleAutoTrade() {
+            const btn = document.getElementById('at-toggle-btn');
+            autoTradeEnabled = !autoTradeEnabled;
+            btn.disabled = true;
+            try {
+                const r = await fetch('/api/autotrade/toggle', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({enable: autoTradeEnabled})
+                });
+                const data = await r.json();
+                autoTradeEnabled = data.enabled;
+                updateAutoTradeUI();
+            } catch(e) { console.error(e); }
+            btn.disabled = false;
+        }
+
+        async function scanAutoTrade() {
+            if (!autoTradeEnabled) {
+                alert('فعّل التداول الآلي أولاً');
+                return;
+            }
+            const btn = document.getElementById('at-scan-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري المسح...';
+            try {
+                const r = await fetch('/api/autotrade/scan', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                const data = await r.json();
+                if (data.new_trades && data.new_trades.length > 0) {
+                    playNotificationSound();
+                    let msg = `🤖 تم فتح ${data.new_trades.length} صفقة جديدة:\\n`;
+                    data.new_trades.forEach(t => {
+                        msg += `\\n✅ ${t.ticker} @ $${t.entry.toFixed(2)} (Score: ${t.score})`;
+                    });
+                    addMessage(msg, 'bot');
+                }
+                if (data.closed_actions && data.closed_actions.length > 0) {
+                    data.closed_actions.forEach(a => {
+                        addMessage(`🔔 ${a.ticker}: ${a.type === 'tp_hit' ? '🎯 وصل الهدف!' : '🛑 ضرب وقف الخسارة'} @ $${a.price.toFixed(2)}`, 'bot');
+                    });
+                }
+                loadAutoTradeStatus();
+            } catch(e) { console.error(e); }
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-search-dollar"></i> مسح السوق';
+        }
+
+        async function loadAutoTradeStatus() {
+            try {
+                const r = await fetch('/api/autotrade/status');
+                const data = await r.json();
+                if (!data.success) return;
+                const s = data.stats;
+                autoTradeEnabled = s.enabled;
+                updateAutoTradeUI();
+
+                document.getElementById('at-capital').textContent = `$${Number(s.capital).toLocaleString('en', {minimumFractionDigits: 0})}`;
+                
+                const pnl = s.total_pnl + s.unrealized_pnl;
+                const pnlEl = document.getElementById('at-pnl');
+                pnlEl.textContent = `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`;
+                pnlEl.style.color = pnl >= 0 ? '#26a69a' : '#ef5350';
+
+                const retEl = document.getElementById('at-return');
+                retEl.textContent = `${s.total_return >= 0 ? '+' : ''}${s.total_return.toFixed(2)}%`;
+                retEl.style.color = s.total_return >= 0 ? '#26a69a' : '#ef5350';
+
+                document.getElementById('at-winrate').textContent = `${s.win_rate.toFixed(0)}%`;
+                document.getElementById('at-winrate').style.color = s.win_rate >= 50 ? '#26a69a' : s.win_rate > 0 ? '#f0c040' : '#888';
+
+                document.getElementById('at-trades-count').textContent = `${s.open_trades} مفتوحة / ${s.total_trades} مغلقة`;
+
+                // Render open trades
+                const tbody = document.getElementById('at-trades-body');
+                if (data.open_trades && data.open_trades.length > 0) {
+                    tbody.innerHTML = data.open_trades.map(t => {
+                        const pnl = ((t.current_price - t.entry_price) * t.shares);
+                        const pnlPct = ((t.current_price - t.entry_price) / t.entry_price * 100);
+                        const c = pnl >= 0 ? '#26a69a' : '#ef5350';
+                        return `<tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                            <td style="padding:8px;font-weight:600;">${t.ticker}</td>
+                            <td style="padding:8px;">$${t.entry_price.toFixed(2)}</td>
+                            <td style="padding:8px;color:${c};font-weight:600;">$${t.current_price.toFixed(2)}</td>
+                            <td style="padding:8px;color:#ef5350;">$${t.sl.toFixed(2)}</td>
+                            <td style="padding:8px;color:#26a69a;">$${t.tp.toFixed(2)}</td>
+                            <td style="padding:8px;">${t.shares}</td>
+                            <td style="padding:8px;color:${c};font-weight:700;">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(1)}%)</td>
+                            <td style="padding:8px;"><span style="background:rgba(212,175,55,0.1);color:#d4af37;padding:2px 8px;border-radius:8px;font-size:0.85em;">${t.score}</span></td>
+                        </tr>`;
+                    }).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#666;">لا توجد صفقات مفتوحة</td></tr>';
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        function updateAutoTradeUI() {
+            const badge = document.getElementById('at-status-badge');
+            const btn = document.getElementById('at-toggle-btn');
+            if (autoTradeEnabled) {
+                badge.textContent = 'مفعّل ✅';
+                badge.style.background = 'rgba(46,204,113,0.15)';
+                badge.style.color = '#2ecc71';
+                btn.innerHTML = '<i class="fas fa-power-off"></i> إيقاف';
+                btn.style.background = 'rgba(239,83,80,0.15)';
+                btn.style.color = '#ef5350';
+                btn.style.borderColor = 'rgba(239,83,80,0.3)';
+            } else {
+                badge.textContent = 'معطل';
+                badge.style.background = 'rgba(239,83,80,0.15)';
+                badge.style.color = '#ef5350';
+                btn.innerHTML = '<i class="fas fa-power-off"></i> تشغيل';
+                btn.style.background = 'rgba(46,204,113,0.15)';
+                btn.style.color = '#2ecc71';
+                btn.style.borderColor = 'rgba(46,204,113,0.3)';
+            }
         }
 
         function restoreChatHistory() {
@@ -1864,6 +2052,7 @@
         loadPortfolio();
         loadEarnings();
         restoreChatHistory();
+        loadAutoTradeStatus();
 
         setInterval(checkAnnouncements, 60000); // Check every minute
         setInterval(loadTickets, 30000); // Check tickets every 30s
