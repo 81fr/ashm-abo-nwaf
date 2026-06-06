@@ -1178,6 +1178,7 @@
                                 <button onclick="sendQuickMessage('توصية TSLA')" class="action-pill pill-signal"><i class="fas fa-signal"></i> {{ t.trade_signal }} TSLA</button>
                                 <button onclick="sendQuickMessage('خيارات AAPL')" class="action-pill pill-options"><i class="fas fa-layer-group"></i> {{ t.options }} AAPL</button>
                                 <button onclick="runBacktest()" class="action-pill" style="background: rgba(155,89,182,0.15); color: #9b59b6;"><i class="fas fa-flask"></i> Backtest AAPL</button>
+                                <button onclick="sendQuickMessage('قارن AAPL MSFT')" class="action-pill" style="background: rgba(52,152,219,0.15); color: #3498db;"><i class="fas fa-balance-scale"></i> {{ t.compare or 'مقارنة' }}</button>
                             </div>
                         </div>
                     </div>
@@ -1264,6 +1265,23 @@
             inputField.value = '';
 
             showTypingIndicator();
+            
+            // Start timer
+            const startTime = Date.now();
+            const timerEl = document.getElementById('typing-indicator-bubble');
+            let timerInterval = null;
+            if (timerEl) {
+                const timerSpan = document.createElement('span');
+                timerSpan.id = 'analysis-timer';
+                timerSpan.style.cssText = 'font-size:0.72em;color:#888;margin-right:8px;';
+                timerSpan.textContent = '0.0s';
+                const dotArea = timerEl.querySelector('.typing-indicator');
+                if (dotArea && dotArea.parentElement) dotArea.parentElement.appendChild(timerSpan);
+                timerInterval = setInterval(() => {
+                    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                    timerSpan.textContent = elapsed + 's';
+                }, 100);
+            }
 
             try {
                 const response = await fetch('/api/chat', {
@@ -1273,10 +1291,21 @@
                 });
 
                 const data = await response.json();
+                if (timerInterval) clearInterval(timerInterval);
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
                 removeTypingIndicator();
 
                 if (data.response) {
-                    addMessage(data.response, 'bot');
+                    // Add elapsed time badge + export button to response
+                    const enhancedResponse = `
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                            <span style="font-size:0.72em;background:rgba(212,175,55,0.1);color:#d4af37;padding:3px 10px;border-radius:10px;">⏱️ ${elapsed}s</span>
+                            <button onclick="exportReport(this)" style="background:none;border:1px solid rgba(212,175,55,0.3);color:#d4af37;padding:3px 10px;border-radius:8px;cursor:pointer;font-size:0.72em;font-family:inherit;" onmouseover="this.style.background='rgba(212,175,55,0.15)'" onmouseout="this.style.background='none'"><i class="fas fa-copy"></i> نسخ</button>
+                        </div>
+                        ${data.response}`;
+                    addMessage(enhancedResponse, 'bot');
+                    // Play notification sound
+                    playNotificationSound();
                 } else if (data.error) {
                     let errMsg = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
                     addMessage("❌ خطأ من الخادم: " + errMsg, 'bot');
@@ -1289,10 +1318,10 @@
                     chartWrapper.style.display = 'block';
                     const chartData = JSON.parse(data.chart);
                     Plotly.newPlot('plotly-chart', chartData.data, chartData.layout, { responsive: true });
-                    // Scroll to chart
                     chartWrapper.scrollIntoView({ behavior: 'smooth' });
                 }
             } catch (error) {
+                if (timerInterval) clearInterval(timerInterval);
                 removeTypingIndicator();
                 addMessage("عذراً، حدث خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى.", 'bot');
             } finally {
@@ -1301,6 +1330,39 @@
                 sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
                 inputField.focus();
             }
+        }
+
+        function playNotificationSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.value = 880;
+                osc.type = 'sine';
+                gain.gain.value = 0.08;
+                osc.start();
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+                osc.stop(ctx.currentTime + 0.3);
+            } catch(e) {}
+        }
+
+        function exportReport(btn) {
+            try {
+                const bubble = btn.closest('.message-bot');
+                if (!bubble) return;
+                const clone = bubble.cloneNode(true);
+                // Remove buttons and timestamps
+                clone.querySelectorAll('button').forEach(b => b.remove());
+                const text = clone.innerText;
+                navigator.clipboard.writeText(text).then(() => {
+                    btn.innerHTML = '<i class="fas fa-check"></i> تم';
+                    btn.style.color = '#2ecc71';
+                    btn.style.borderColor = '#2ecc71';
+                    setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i> نسخ'; btn.style.color = '#d4af37'; btn.style.borderColor = 'rgba(212,175,55,0.3)'; }, 2000);
+                });
+            } catch(e) { alert('النسخ غير مدعوم في هذا المتصفح'); }
         }
 
         async function saveApiKey() {

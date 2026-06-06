@@ -606,6 +606,10 @@ def chat():
         if is_scanner_request and "توصية" in user_message and ticker is not None:
             is_scanner_request = False
         
+        # Comparison keywords
+        compare_keywords = ["قارن", "مقارنة", "compare", "vs", "ضد", "مقابل", "ولا"]
+        is_compare = any(kw in user_message for kw in compare_keywords)
+        
         # Greeting keywords
         greeting_keywords = ["مرحبا", "هلا", "السلام", "أهلا", "اهلا", "هاي", "مساء", "صباح",
                             "hello", "hi", "hey", "مرحب"]
@@ -644,6 +648,101 @@ def chat():
             <p style='margin-top: 15px; color: #aaa; font-size: 0.85rem;'>💡 <b>نصيحة:</b> يمكنك الكتابة بالعربي أو الإنجليزي. مثلاً "تسلا" = "TSLA"</p>
             </div>"""
             return {"response": help_response}
+        elif is_compare:
+            # Stock comparison: extract two tickers
+            all_tickers = re.findall(r'\b[A-Z]{2,5}\b', user_message)
+            # Also check Arabic names
+            for ar_name, ar_ticker in ARABIC_STOCK_MAP.items():
+                if ar_name in user_message and ar_ticker not in all_tickers:
+                    all_tickers.append(ar_ticker)
+            all_tickers = [t for t in all_tickers if t not in IGNORED_KEYWORDS][:2]
+            
+            if len(all_tickers) < 2:
+                return {"response": "<div style='text-align:center;padding:20px;'><i class='fas fa-balance-scale' style='font-size:2rem;color:#d4af37;display:block;margin-bottom:10px;'></i><h4 style='color:#fff;'>⚖️ مقارنة الأسهم</h4><p style='color:#aaa;'>اكتب سهمين للمقارنة، مثل:</p><div style='margin-top:10px;'><code style='background:rgba(212,175,55,0.1);padding:6px 14px;border-radius:8px;color:#d4af37;'>قارن AAPL MSFT</code></div></div>"}
+            
+            t1, t2 = all_tickers[0], all_tickers[1]
+            try:
+                e1, e2 = StockEngine(t1), StockEngine(t2)
+                h1 = e1.get_market_data(period="1mo")
+                h2 = e2.get_market_data(period="1mo")
+                h1 = e1.calculate_technical_indicators(h1) if h1 is not None and not h1.empty else h1
+                h2 = e2.calculate_technical_indicators(h2) if h2 is not None and not h2.empty else h2
+                
+                def get_val(info, key, default="N/A"):
+                    v = info.get(key, default)
+                    if v is None: return default
+                    return v
+                
+                def fmt_num(v):
+                    if v == "N/A" or v is None: return "N/A"
+                    if isinstance(v, (int, float)):
+                        if abs(v) >= 1e12: return f"${v/1e12:.2f}T"
+                        if abs(v) >= 1e9: return f"${v/1e9:.2f}B"
+                        if abs(v) >= 1e6: return f"${v/1e6:.1f}M"
+                        return f"${v:,.2f}"
+                    return str(v)
+                
+                p1 = get_val(e1.info, 'currentPrice', get_val(e1.info, 'regularMarketPrice', 0))
+                p2 = get_val(e2.info, 'currentPrice', get_val(e2.info, 'regularMarketPrice', 0))
+                pe1 = get_val(e1.info, 'trailingPE')
+                pe2 = get_val(e2.info, 'trailingPE')
+                mc1 = fmt_num(get_val(e1.info, 'marketCap'))
+                mc2 = fmt_num(get_val(e2.info, 'marketCap'))
+                
+                rsi1 = f"{h1['RSI'].iloc[-1]:.1f}" if h1 is not None and 'RSI' in h1 and not h1.empty else "N/A"
+                rsi2 = f"{h2['RSI'].iloc[-1]:.1f}" if h2 is not None and 'RSI' in h2 and not h2.empty else "N/A"
+                
+                macd_s1 = "صعودي 🟢" if (h1 is not None and 'MACD' in h1 and 'Signal_Line' in h1 and h1['MACD'].iloc[-1] > h1['Signal_Line'].iloc[-1]) else "هبوطي 🔴"
+                macd_s2 = "صعودي 🟢" if (h2 is not None and 'MACD' in h2 and 'Signal_Line' in h2 and h2['MACD'].iloc[-1] > h2['Signal_Line'].iloc[-1]) else "هبوطي 🔴"
+                
+                vol1 = fmt_num(get_val(e1.info, 'averageVolume'))
+                vol2 = fmt_num(get_val(e2.info, 'averageVolume'))
+                div1 = f"{get_val(e1.info, 'dividendYield', 0)*100:.2f}%" if get_val(e1.info, 'dividendYield', 0) not in [0, "N/A", None] else "لا يوجد"
+                div2 = f"{get_val(e2.info, 'dividendYield', 0)*100:.2f}%" if get_val(e2.info, 'dividendYield', 0) not in [0, "N/A", None] else "لا يوجد"
+                
+                n1 = get_val(e1.info, 'shortName', t1)
+                n2 = get_val(e2.info, 'shortName', t2)
+                
+                # Determine winner
+                score1, score2 = 0, 0
+                try:
+                    if float(pe1) < float(pe2): score1 += 1
+                    else: score2 += 1
+                except: pass
+                try:
+                    if float(rsi1) < float(rsi2): score1 += 1
+                    else: score2 += 1
+                except: pass
+                if "صعودي" in macd_s1: score1 += 1
+                if "صعودي" in macd_s2: score2 += 1
+                
+                winner = t1 if score1 > score2 else t2 if score2 > score1 else "تعادل"
+                w_color = "#2ecc71" if winner != "تعادل" else "#f1c40f"
+                
+                compare_html = f"""
+                <div style="background:linear-gradient(135deg,rgba(212,175,55,0.06),rgba(0,0,0,0.3));border:1px solid rgba(212,175,55,0.2);border-radius:14px;padding:20px;margin-bottom:12px;">
+                    <h3 style="color:#d4af37;margin:0 0 15px 0;text-align:center;"><i class="fas fa-balance-scale"></i> مقارنة: {t1} ⚡ {t2}</h3>
+                    <table style="width:100%;border-collapse:collapse;font-size:0.85em;">
+                        <thead><tr style="border-bottom:2px solid rgba(212,175,55,0.3);">
+                            <th style="padding:10px;color:#888;text-align:right;">المقياس</th>
+                            <th style="padding:10px;color:#d4af37;text-align:center;">{t1}<br><span style="font-size:0.75em;color:#888;">{n1}</span></th>
+                            <th style="padding:10px;color:#3498db;text-align:center;">{t2}<br><span style="font-size:0.75em;color:#888;">{n2}</span></th>
+                        </tr></thead>
+                        <tbody>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);"><td style="padding:8px;color:#aaa;">💰 السعر</td><td style="padding:8px;text-align:center;color:#fff;font-weight:bold;">${p1}</td><td style="padding:8px;text-align:center;color:#fff;font-weight:bold;">${p2}</td></tr>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);background:rgba(255,255,255,0.02);"><td style="padding:8px;color:#aaa;">📊 P/E</td><td style="padding:8px;text-align:center;color:#fff;">{pe1}</td><td style="padding:8px;text-align:center;color:#fff;">{pe2}</td></tr>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);"><td style="padding:8px;color:#aaa;">💎 القيمة السوقية</td><td style="padding:8px;text-align:center;color:#fff;">{mc1}</td><td style="padding:8px;text-align:center;color:#fff;">{mc2}</td></tr>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);background:rgba(255,255,255,0.02);"><td style="padding:8px;color:#aaa;">📉 RSI</td><td style="padding:8px;text-align:center;color:{'#ef5350' if rsi1!='N/A' and float(rsi1)>70 else '#26a69a' if rsi1!='N/A' and float(rsi1)<30 else '#fff'};">{rsi1}</td><td style="padding:8px;text-align:center;color:{'#ef5350' if rsi2!='N/A' and float(rsi2)>70 else '#26a69a' if rsi2!='N/A' and float(rsi2)<30 else '#fff'};">{rsi2}</td></tr>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);"><td style="padding:8px;color:#aaa;">📈 MACD</td><td style="padding:8px;text-align:center;">{macd_s1}</td><td style="padding:8px;text-align:center;">{macd_s2}</td></tr>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);background:rgba(255,255,255,0.02);"><td style="padding:8px;color:#aaa;">📊 متوسط الحجم</td><td style="padding:8px;text-align:center;color:#fff;">{vol1}</td><td style="padding:8px;text-align:center;color:#fff;">{vol2}</td></tr>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);"><td style="padding:8px;color:#aaa;">💵 توزيعات</td><td style="padding:8px;text-align:center;color:#fff;">{div1}</td><td style="padding:8px;text-align:center;color:#fff;">{div2}</td></tr>
+                            <tr style="background:rgba(212,175,55,0.08);"><td style="padding:10px;color:#d4af37;font-weight:bold;">🏆 الحكم</td><td colspan="2" style="padding:10px;text-align:center;font-weight:bold;font-size:1.1em;color:{w_color};">{'⚖️ تعادل — كلاهما جيد' if winner=='تعادل' else f'✅ {winner} أفضل فنياً ({max(score1,score2)}/3)'}</td></tr>
+                        </tbody>
+                    </table>
+                </div>"""
+                return {"response": compare_html}
+            except Exception as e:
+                return {"response": f"<div style='color:#ef5350;padding:15px;'>❌ خطأ في المقارنة: {str(e)}</div>"}
         elif is_scanner_request:
             pass  # Scanner handled below
         elif not ticker:

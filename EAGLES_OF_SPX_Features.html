@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EAGLES OF SPX — مستشارك الذكي</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        @page { size: A4; margin: 0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            line-height: 1.7;
+            font-size: 13px;
+        }
+
+        .page { 
+            width: 210mm; min-height: 297mm; margin: 0 auto;
+            padding: 30px 35px;
+            background: linear-gradient(180deg, #050508 0%, #0a0a12 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .page::before {
+            content: ''; position: absolute; top: -100px; right: -100px;
+            width: 400px; height: 400px;
+            background: radial-gradient(circle, rgba(212,175,55,0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 25px 0 20px;
+            border-bottom: 2px solid rgba(212,175,55,0.3);
+            margin-bottom: 25px;
+        }
+        .header h1 {
+            font-size: 32px; font-weight: 900;
+            background: linear-gradient(135deg, #d4af37, #f0d060, #d4af37);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
+            margin-bottom: 6px;
+        }
+        .header .subtitle {
+            color: #aaa; font-size: 15px; font-weight: 600;
+        }
+        .header .badge {
+            display: inline-block; margin-top: 10px;
+            background: rgba(212,175,55,0.15); border: 1px solid rgba(212,175,55,0.3);
+            padding: 5px 20px; border-radius: 20px;
+            color: #d4af37; font-size: 12px; font-weight: 700;
+        }
+
+        /* Section */
+        .section {
+            margin-bottom: 20px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 14px;
+            padding: 18px 20px;
+        }
+        .section-title {
+            font-size: 16px; font-weight: 800;
+            color: #d4af37; margin-bottom: 12px;
+            display: flex; align-items: center; gap: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(212,175,55,0.15);
+        }
+        .section-title .icon {
+            width: 30px; height: 30px; border-radius: 8px;
+            background: rgba(212,175,55,0.15);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px;
+        }
+
+        /* Grid */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+        .feature-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 10px 12px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .feature-card .emoji { font-size: 18px; flex-shrink: 0; }
+        .feature-card .text { font-size: 11.5px; color: #ccc; }
+        .feature-card .text b { color: #fff; }
+
+        /* Table */
+        table {
+            width: 100%; border-collapse: collapse;
+            font-size: 11.5px; margin-top: 8px;
+        }
+        th {
+            background: rgba(212,175,55,0.12);
+            color: #d4af37; font-weight: 700;
+            padding: 8px 10px; text-align: right;
+            border-bottom: 1px solid rgba(212,175,55,0.2);
+        }
+        td {
+            padding: 6px 10px; color: #ccc;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        tr:hover td { background: rgba(212,175,55,0.03); }
+
+        /* Highlight box */
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(212,175,55,0.08), rgba(212,175,55,0.03));
+            border: 1px solid rgba(212,175,55,0.2);
+            border-radius: 12px;
+            padding: 15px 18px;
+            margin-top: 12px;
+        }
+        .highlight-box h4 { color: #d4af37; margin-bottom: 8px; font-size: 13px; }
+        .highlight-box code {
+            display: block; background: rgba(0,0,0,0.4);
+            padding: 4px 12px; margin: 3px 0; border-radius: 6px;
+            color: #f0d060; font-family: 'Cairo', monospace; font-size: 12px;
+            direction: ltr; text-align: left;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center; margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(212,175,55,0.2);
+            color: #666; font-size: 11px;
+        }
+        .footer .slogan {
+            color: #d4af37; font-weight: 700; font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        /* Page 2 break */
+        .page-break { page-break-before: always; }
+
+        @media print {
+            body { background: #0a0a0a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .page { box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- PAGE 1 -->
+<div class="page">
+
+    <div class="header">
+        <h1>🦅 EAGLES OF SPX</h1>
+        <div class="subtitle">مستشارك الذكي للأسواق الأمريكية</div>
+        <div class="badge">🤖 منصة تحليل احترافية مدعومة بالذكاء الاصطناعي</div>
+    </div>
+
+    <!-- What it does -->
+    <div class="section">
+        <div class="section-title"><div class="icon">🎯</div> وش يسوي البوت؟</div>
+        <p style="color:#ccc; font-size: 12.5px; margin-bottom: 10px;">
+            تكتب اسم أي سهم أمريكي <b style="color:#d4af37;">(بالعربي أو الإنجليزي)</b> ويعطيك تقرير احترافي كامل خلال ثوانٍ — تحليل فني + أساسي + توصية ذكاء اصطناعي + شارت تفاعلي + فحص شرعي.
+        </p>
+        <div class="grid-3">
+            <div class="feature-card"><span class="emoji">📊</span><div class="text"><b>15 مؤشر فني</b> متقدم</div></div>
+            <div class="feature-card"><span class="emoji">📋</span><div class="text"><b>20 مقياس أساسي</b></div></div>
+            <div class="feature-card"><span class="emoji">🤖</span><div class="text"><b>AI</b> ذكاء اصطناعي</div></div>
+            <div class="feature-card"><span class="emoji">📈</span><div class="text">شارت <b>4 طبقات</b></div></div>
+            <div class="feature-card"><span class="emoji">🕌</span><div class="text">فحص <b>شرعي</b> تلقائي</div></div>
+            <div class="feature-card"><span class="emoji">⏱️</span><div class="text"><b>5 إطارات</b> زمنية</div></div>
+        </div>
+    </div>
+
+    <!-- Technical Analysis -->
+    <div class="section">
+        <div class="section-title"><div class="icon">🧠</div> التحليل الفني المتقدم — 15 مؤشر</div>
+        <table>
+            <tr><th style="width:30%;">المؤشر</th><th>الوظيفة</th></tr>
+            <tr><td>📈 EMA 9 / 20 / 50</td><td>تتبع الاتجاه (قصير + متوسط + طويل)</td></tr>
+            <tr><td>📉 RSI (14)</td><td>كشف ذروة الشراء والبيع</td></tr>
+            <tr><td>📊 MACD + Signal</td><td>زخم الاتجاه وتقاطعاته</td></tr>
+            <tr><td>🔄 Stochastic %K/%D</td><td>نقاط الانعكاس المتوقعة</td></tr>
+            <tr><td>💪 ADX</td><td>قياس قوة الاتجاه الحالي</td></tr>
+            <tr><td>📏 Bollinger Bands</td><td>نطاق التقلب العلوي والسفلي</td></tr>
+            <tr><td>🎯 VWAP</td><td>متوسط السعر المرجّح بالحجم</td></tr>
+            <tr><td>📐 ATR</td><td>قياس التقلب اليومي</td></tr>
+            <tr><td>📊 OBV</td><td>تتبع زخم حجم التداول</td></tr>
+            <tr><td>🔻 Williams %R</td><td>مناطق التشبع الشرائي والبيعي</td></tr>
+            <tr><td>🕯️ أنماط الشموع</td><td>9 أنماط يابانية (Hammer, Engulfing, Doji...)</td></tr>
+            <tr><td>📐 فيبوناتشي</td><td>مستويات الارتداد المحسوبة تلقائياً</td></tr>
+        </table>
+    </div>
+
+    <!-- Fundamental -->
+    <div class="section">
+        <div class="section-title"><div class="icon">📋</div> التحليل الأساسي الشامل — 20 مقياس</div>
+        <div class="grid-2">
+            <div class="feature-card"><span class="emoji">💎</span><div class="text">القيمة السوقية</div></div>
+            <div class="feature-card"><span class="emoji">📊</span><div class="text">مكرر الأرباح P/E</div></div>
+            <div class="feature-card"><span class="emoji">💵</span><div class="text">ربحية السهم EPS</div></div>
+            <div class="feature-card"><span class="emoji">🚀</span><div class="text">نمو الإيرادات والأرباح</div></div>
+            <div class="feature-card"><span class="emoji">✂️</span><div class="text">هامش الربح</div></div>
+            <div class="feature-card"><span class="emoji">🏦</span><div class="text">ROE العائد على الملكية</div></div>
+            <div class="feature-card"><span class="emoji">⚖️</span><div class="text">نسبة الدين</div></div>
+            <div class="feature-card"><span class="emoji">💰</span><div class="text">التدفق النقدي الحر</div></div>
+            <div class="feature-card"><span class="emoji">📉</span><div class="text">معامل بيتا β</div></div>
+            <div class="feature-card"><span class="emoji">⭐</span><div class="text"><b>تقييم الأساسيات /100</b></div></div>
+        </div>
+    </div>
+
+</div>
+
+<!-- PAGE 2 -->
+<div class="page page-break">
+
+    <!-- AI -->
+    <div class="section">
+        <div class="section-title"><div class="icon">🤖</div> مستشار الذكاء الاصطناعي</div>
+        <div class="grid-2">
+            <div class="feature-card"><span class="emoji">🧠</span><div class="text">مدعوم بـ <b>Llama 3.3 (70B)</b></div></div>
+            <div class="feature-card"><span class="emoji">✅</span><div class="text">حكم واضح: <b>شراء / انتظار / تجنب</b></div></div>
+            <div class="feature-card"><span class="emoji">📝</span><div class="text">شرح <b>بلغة بسيطة</b> للمبتدئين</div></div>
+            <div class="feature-card"><span class="emoji">🎯</span><div class="text">دخول + هدف + <b>وقف خسارة</b></div></div>
+        </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="section">
+        <div class="section-title"><div class="icon">📈</div> شارت احترافي تفاعلي</div>
+        <div class="grid-2">
+            <div class="feature-card"><span class="emoji">🕯️</span><div class="text">شموع يابانية + EMA + VWAP + Bollinger</div></div>
+            <div class="feature-card"><span class="emoji">📊</span><div class="text">حجم التداول بألوان ديناميكية</div></div>
+            <div class="feature-card"><span class="emoji">📉</span><div class="text">RSI مع خطوط 30/70</div></div>
+            <div class="feature-card"><span class="emoji">📈</span><div class="text">MACD + Signal + Histogram</div></div>
+            <div class="feature-card"><span class="emoji">📐</span><div class="text">خطوط فيبوناتشي تلقائية</div></div>
+            <div class="feature-card"><span class="emoji">🛡️</span><div class="text">خطوط الهدف ووقف الخسارة</div></div>
+        </div>
+    </div>
+
+    <!-- Market Pulse -->
+    <div class="section">
+        <div class="section-title"><div class="icon">🫀</div> نبض السوق اللحظي</div>
+        <div class="grid-2">
+            <div class="feature-card"><span class="emoji">📊</span><div class="text">متابعة <b>S&P 500</b> و <b>VIX</b></div></div>
+            <div class="feature-card"><span class="emoji">🔥</span><div class="text">الأكثر ارتفاعاً وانخفاضاً</div></div>
+            <div class="feature-card"><span class="emoji">🟢</span><div class="text">حالة السوق: مفتوح / مغلق</div></div>
+            <div class="feature-card"><span class="emoji">📅</span><div class="text">أرباح الشركات القادمة</div></div>
+        </div>
+    </div>
+
+    <!-- Extra Features -->
+    <div class="section">
+        <div class="section-title"><div class="icon">🔥</div> مميزات إضافية</div>
+        <div class="grid-2">
+            <div class="feature-card"><span class="emoji">🔍</span><div class="text"><b>بحث عن فرص</b> — مسح أقوى الأسهم</div></div>
+            <div class="feature-card"><span class="emoji">📋</span><div class="text"><b>عقود الخيارات</b> — Calls & Puts</div></div>
+            <div class="feature-card"><span class="emoji">☀️</span><div class="text"><b>ملخص الصباح الذكي</b> — تقرير يومي</div></div>
+            <div class="feature-card"><span class="emoji">💼</span><div class="text"><b>محفظة تجريبية</b> — تتبع صفقاتك</div></div>
+            <div class="feature-card"><span class="emoji">🕌</span><div class="text"><b>فحص شرعي</b> تلقائي لكل سهم</div></div>
+            <div class="feature-card"><span class="emoji">💾</span><div class="text"><b>حفظ المحادثات</b> تلقائياً</div></div>
+            <div class="feature-card"><span class="emoji">🌐</span><div class="text"><b>عربي + إنجليزي</b></div></div>
+            <div class="feature-card"><span class="emoji">📱</span><div class="text">متوافق مع <b>الجوال</b></div></div>
+        </div>
+    </div>
+
+    <!-- How to use -->
+    <div class="section">
+        <div class="section-title"><div class="icon">💬</div> كيف تستخدمه؟</div>
+        <div class="highlight-box">
+            <h4>أمثلة على الأوامر:</h4>
+            <code>TSLA  أو  تسلا                ← تقرير شامل</code>
+            <code>تحليل فني AAPL               ← تحليل فني مفصّل</code>
+            <code>تحليل أساسي NVDA             ← جدول 20 مقياس مالي</code>
+            <code>وش رأيك في أمازون؟            ← رأي الذكاء الاصطناعي</code>
+            <code>عطني توصية تسلا              ← دخول + هدف + وقف</code>
+            <code>ابحث عن فرص                  ← مسح السوق</code>
+            <code>خيارات AAPL                  ← عقود Options</code>
+        </div>
+    </div>
+
+    <!-- Timeframes -->
+    <div class="section">
+        <div class="section-title"><div class="icon">⏱️</div> الإطارات الزمنية</div>
+        <table>
+            <tr><th>الإطار</th><th>الاستخدام</th></tr>
+            <tr><td>15 دقيقة</td><td>مضاربة سريعة (Scalping)</td></tr>
+            <tr><td>30 دقيقة</td><td>تداول يومي (Day Trading)</td></tr>
+            <tr><td>ساعة</td><td>سوينق قصير (Swing)</td></tr>
+            <tr><td>يومي</td><td>استثمار متوسط المدى</td></tr>
+            <tr><td>شهري</td><td>استثمار طويل المدى</td></tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        <div class="slogan">🦅 EAGLES OF SPX — لأن قراراتك المالية تستاهل مستشار ذكي</div>
+        <p>جميع التحليلات للأغراض التعليمية فقط — ليست نصيحة مالية</p>
+    </div>
+
+</div>
+
+</body>
+</html>
