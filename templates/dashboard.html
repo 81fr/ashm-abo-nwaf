@@ -929,6 +929,12 @@
                         <span class="tooltip-help">?<span class="tooltip-text"><b>☀️ ملخص الصباح</b>تقرير يومي شامل يتضمن أداء المؤشرات (S&P 500, Nasdaq, Dow) + حالة الخوف والطمع (VIX) + أفضل فرص اليوم. اضغط لعرضه.</span></span>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="javascript:void(0)" onclick="openTutorial()" class="nav-link" style="background:linear-gradient(135deg,rgba(212,175,55,0.08),transparent);border:1px solid rgba(212,175,55,0.15);border-radius:10px;">
+                        <i class="fas fa-book-open" style="color: #d4af37;"></i>
+                        <span style="color:#d4af37;">📖 دليل الاستخدام</span>
+                    </a>
+                </li>
                 <li class="nav-item" style="margin-top: 10px;">
                     {% if lang == 'ar' %}
                     <a href="{{ url_for('set_lang', lang='en') }}" class="nav-link">
