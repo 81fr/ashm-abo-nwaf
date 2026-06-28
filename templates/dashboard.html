@@ -896,7 +896,7 @@
                     <a href="#" class="nav-link active">
                         <i class="fas fa-chart-line"></i>
                         <span>{{ t.ai_advisor }}</span>
-                        <span class="tooltip-help">?<span class="tooltip-text"><b>💡 المستشار الذكي</b>الصفحة الرئيسية — اكتب اسم أي سهم (مثل TSLA أو تسلا) وسيعطيك تحليل فني + أساسي + رأي الذكاء الاصطناعي</span></span>
+                        <span class="tooltip-help">?<span class="tooltip-text">{% if lang == "en" %}<b>💡 Smart Advisor</b>Main page — type any stock (e.g. TSLA) for technical + fundamental + AI analysis{% else %}<b>💡 المستشار الذكي</b>الصفحة الرئيسية — اكتب اسم أي سهم (مثل TSLA أو تسلا) وسيعطيك تحليل فني + أساسي + رأي الذكاء الاصطناعي{% endif %}</span></span>
                     </a>
                 </li>
                 {% if session['role'] == 'admin' %}
@@ -918,7 +918,7 @@
                     <a href="javascript:void(0)" onclick="openSupportModal()" class="nav-link">
                         <i class="fas fa-headset"></i>
                         <span>{{ t.support }}</span>
-                        <span class="tooltip-help">?<span class="tooltip-text"><b>🎧 الدعم الفني</b>تواصل مع فريق الدعم مباشرة. اكتب مشكلتك أو سؤالك وسيرد عليك الفريق في أقرب وقت.</span></span>
+                        <span class="tooltip-help">?<span class="tooltip-text">{% if lang == "en" %}<b>🎧 Support</b>Contact the support team directly. Submit your issue and the team will respond shortly.{% else %}<b>🎧 الدعم الفني</b>تواصل مع فريق الدعم مباشرة. اكتب مشكلتك أو سؤالك وسيرد عليك الفريق في أقرب وقت.{% endif %}</span></span>
                         <span id="support-badge" class="nav-badge"></span>
                     </a>
                 </li>
@@ -926,7 +926,7 @@
                     <a href="javascript:void(0)" onclick="showMorningBriefing(true)" class="nav-link">
                         <i class="fas fa-sun" style="color: #e2c044;"></i>
                         <span>{{ t.morning_briefing }}</span>
-                        <span class="tooltip-help">?<span class="tooltip-text"><b>☀️ ملخص الصباح</b>تقرير يومي شامل يتضمن أداء المؤشرات (S&P 500, Nasdaq, Dow) + حالة الخوف والطمع (VIX) + أفضل فرص اليوم. اضغط لعرضه.</span></span>
+                        <span class="tooltip-help">?<span class="tooltip-text">{% if lang == "en" %}<b>☀️ Morning Briefing</b>Daily report with index performance (S&P 500, Nasdaq, Dow) + Fear & Greed (VIX) + top opportunities.{% else %}<b>☀️ ملخص الصباح</b>تقرير يومي شامل يتضمن أداء المؤشرات (S&P 500, Nasdaq, Dow) + حالة الخوف والطمع (VIX) + أفضل فرص اليوم. اضغط لعرضه.{% endif %}</span></span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -973,19 +973,20 @@
 
         <!-- Interactive Tutorial Modal -->
         <div id="tutorial-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:10000;backdrop-filter:blur(8px);overflow-y:auto;">
-            <div style="max-width:700px;margin:30px auto;padding:20px;">
+            <div style="max-width:700px;margin:30px auto;padding:20px;direction:{{ 'rtl' if lang == 'ar' else 'ltr' }};text-align:{{ 'right' if lang == 'ar' else 'left' }};">
                 <!-- Header -->
                 <div style="text-align:center;margin-bottom:30px;">
                     <div style="font-size:3rem;margin-bottom:10px;">🦅</div>
-                    <h2 style="color:#d4af37;margin:0;font-size:1.6rem;">دليل استخدام EAGLES OF SPX</h2>
-                    <p style="color:#999;margin:8px 0 0 0;font-size:0.9rem;">تعلّم كيف تستخدم كل ميزة في المنصة خطوة بخطوة</p>
-                    <button onclick="closeTutorial()" style="position:absolute;top:20px;left:20px;background:rgba(255,255,255,0.1);border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:1.1rem;">✕</button>
+                    <h2 style="color:#d4af37;margin:0;font-size:1.6rem;">{{ t.tut_title }}</h2>
+                    <p style="color:#999;margin:8px 0 0 0;font-size:0.9rem;">{{ t.tut_subtitle }}</p>
+                    <button onclick="closeTutorial()" style="position:absolute;top:20px;{{ 'left' if lang == 'ar' else 'right' }}:20px;background:rgba(255,255,255,0.1);border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:1.1rem;">✕</button>
                 </div>
 
-                <!-- Step 1: Chat -->
+                {% if lang == 'ar' %}
+                <!-- ARABIC Tutorial -->
                 <div class="tut-card" style="background:linear-gradient(135deg,rgba(212,175,55,0.08),rgba(0,0,0,0.4));border:1px solid rgba(212,175,55,0.2);border-radius:16px;padding:22px;margin-bottom:16px;">
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-                        <span style="background:#d4af37;color:#000;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9rem;">1</span>
+                        <span style="background:#d4af37;color:#000;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;">1</span>
                         <h3 style="color:#d4af37;margin:0;font-size:1.1rem;">💬 صندوق المحادثة (الشات)</h3>
                     </div>
                     <p style="color:#ccc;line-height:1.8;font-size:0.88rem;margin:0 0 12px 0;">هذا <b style="color:#fff;">قلب المنصة</b>. فيه تكتب اسم أي سهم وتحصل على تحليل كامل.</p>
@@ -993,148 +994,156 @@
                         <p style="color:#d4af37;font-weight:700;margin:0 0 8px 0;font-size:0.82rem;">📝 أمثلة تقدر تكتبها:</p>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.8rem;">
                             <div style="background:rgba(255,255,255,0.04);padding:8px;border-radius:6px;color:#aaa;"><b style="color:#26a69a;">TSLA</b> → تقرير شامل لتسلا</div>
-                            <div style="background:rgba(255,255,255,0.04);padding:8px;border-radius:6px;color:#aaa;"><b style="color:#26a69a;">تسلا</b> → نفس الشي بالعربي</div>
                             <div style="background:rgba(255,255,255,0.04);padding:8px;border-radius:6px;color:#aaa;"><b style="color:#26a69a;">توصية AAPL</b> → نقاط دخول/وقف/هدف</div>
                             <div style="background:rgba(255,255,255,0.04);padding:8px;border-radius:6px;color:#aaa;"><b style="color:#26a69a;">قارن AAPL MSFT</b> → مقارنة سهمين</div>
-                            <div style="background:rgba(255,255,255,0.04);padding:8px;border-radius:6px;color:#aaa;"><b style="color:#26a69a;">قطاعات</b> → خريطة أداء القطاعات</div>
                             <div style="background:rgba(255,255,255,0.04);padding:8px;border-radius:6px;color:#aaa;"><b style="color:#26a69a;">عطني سهم</b> → يبحث لك عن فرصة</div>
                         </div>
                     </div>
-                    <div style="background:rgba(46,204,113,0.08);border:1px solid rgba(46,204,113,0.15);border-radius:8px;padding:10px;font-size:0.78rem;color:#2ecc71;">
-                        💡 <b>نصيحة:</b> تقدر تكتب بالعربي أو الإنجليزي — البوت يفهم الاثنين!
-                    </div>
+                    <div style="background:rgba(46,204,113,0.08);border:1px solid rgba(46,204,113,0.15);border-radius:8px;padding:10px;font-size:0.78rem;color:#2ecc71;">💡 <b>نصيحة:</b> تقدر تكتب بالعربي أو الإنجليزي — البوت يفهم الاثنين!</div>
                 </div>
-
-                <!-- Step 2: Timeframe -->
                 <div class="tut-card" style="background:linear-gradient(135deg,rgba(52,152,219,0.08),rgba(0,0,0,0.4));border:1px solid rgba(52,152,219,0.2);border-radius:16px;padding:22px;margin-bottom:16px;">
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-                        <span style="background:#3498db;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9rem;">2</span>
+                        <span style="background:#3498db;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;">2</span>
                         <h3 style="color:#3498db;margin:0;font-size:1.1rem;">⏱️ الإطار الزمني</h3>
                     </div>
-                    <p style="color:#ccc;line-height:1.8;font-size:0.88rem;margin:0 0 12px 0;">القائمة اللي جنب صندوق الكتابة — تحدد <b style="color:#fff;">فترة التحليل</b>:</p>
-                    <div style="background:rgba(0,0,0,0.3);border-radius:10px;padding:14px;">
-                        <div style="display:grid;gap:6px;font-size:0.82rem;">
-                            <div style="display:flex;justify-content:space-between;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;"><span style="color:#d4af37;">15 دقيقة / 30 دقيقة</span><span style="color:#aaa;">للمضاربة اليومية (Day Trading)</span></div>
-                            <div style="display:flex;justify-content:space-between;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;"><span style="color:#d4af37;">ساعة</span><span style="color:#aaa;">للسوينق (2-5 أيام)</span></div>
-                            <div style="display:flex;justify-content:space-between;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;"><span style="color:#d4af37;">يومي</span><span style="color:#aaa;">للاستثمار المتوسط (أسابيع-شهور)</span></div>
-                            <div style="display:flex;justify-content:space-between;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;"><span style="color:#d4af37;">شهري</span><span style="color:#aaa;">للاستثمار طويل المدى (سنوات)</span></div>
+                    <p style="color:#ccc;line-height:1.8;font-size:0.88rem;margin:0 0 12px 0;">القائمة جنب صندوق الكتابة — تحدد <b style="color:#fff;">فترة التحليل</b>:</p>
+                    <div style="background:rgba(0,0,0,0.3);border-radius:10px;padding:14px;font-size:0.82rem;">
+                        <div style="display:grid;gap:6px;">
+                            <div style="display:flex;justify-content:space-between;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;"><span style="color:#d4af37;">15 / 30 دقيقة</span><span style="color:#aaa;">مضاربة يومية</span></div>
+                            <div style="display:flex;justify-content:space-between;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;"><span style="color:#d4af37;">ساعة</span><span style="color:#aaa;">سوينق (2-5 أيام)</span></div>
+                            <div style="display:flex;justify-content:space-between;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;"><span style="color:#d4af37;">يومي</span><span style="color:#aaa;">استثمار متوسط</span></div>
+                            <div style="display:flex;justify-content:space-between;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;"><span style="color:#d4af37;">شهري</span><span style="color:#aaa;">استثمار طويل المدى</span></div>
                         </div>
                     </div>
                 </div>
-
-                <!-- Step 3: Quick Actions -->
                 <div class="tut-card" style="background:linear-gradient(135deg,rgba(46,204,113,0.08),rgba(0,0,0,0.4));border:1px solid rgba(46,204,113,0.2);border-radius:16px;padding:22px;margin-bottom:16px;">
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-                        <span style="background:#2ecc71;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9rem;">3</span>
+                        <span style="background:#2ecc71;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;">3</span>
                         <h3 style="color:#2ecc71;margin:0;font-size:1.1rem;">⚡ الأزرار السريعة</h3>
                     </div>
-                    <p style="color:#ccc;line-height:1.8;font-size:0.88rem;margin:0 0 12px 0;">بدل ما تكتب، اضغط على أي <b style="color:#fff;">زر جاهز</b>:</p>
                     <div style="background:rgba(0,0,0,0.3);border-radius:10px;padding:14px;font-size:0.82rem;">
                         <div style="display:grid;gap:6px;">
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-right:3px solid #e2c044;">📊 <b style="color:#e2c044;">تحليل فني:</b> مؤشرات RSI, MACD, Bollinger — يقيس زخم السهم وقوته</div>
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-right:3px solid #3498db;">🏢 <b style="color:#3498db;">تحليل أساسي:</b> أرباح الشركة، نسبة P/E، الإيرادات — هل الشركة مربحة؟</div>
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-right:3px solid #9b59b6;">🧠 <b style="color:#9b59b6;">توقع ذكي:</b> الذكاء الاصطناعي يحلل ويعطيك رأيه: شراء؟ بيع؟ انتظار؟</div>
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-right:3px solid #26a69a;">🔍 <b style="color:#26a69a;">بحث عن فرص:</b> يمسح 20+ سهم ويختار لك الأفضل للشراء الآن</div>
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-right:3px solid #e74c3c;">🎯 <b style="color:#e74c3c;">توصية تداول:</b> يعطيك سعر الدخول + وقف الخسارة + الهدف جاهزين</div>
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-right:3px solid #f39c12;">🧪 <b style="color:#f39c12;">Backtest:</b> يختبر الاستراتيجية على بيانات 6 شهور سابقة — هل كانت تربح؟</div>
+                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-right:3px solid #e2c044;">📊 <b style="color:#e2c044;">تحليل فني:</b> RSI, MACD — يقيس زخم السهم</div>
+                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-right:3px solid #3498db;">🏢 <b style="color:#3498db;">تحليل أساسي:</b> أرباح ونسب مالية</div>
+                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-right:3px solid #9b59b6;">🧠 <b style="color:#9b59b6;">توقع ذكي:</b> رأي الذكاء الاصطناعي</div>
+                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-right:3px solid #e74c3c;">🎯 <b style="color:#e74c3c;">توصية:</b> دخول + وقف خسارة + هدف</div>
+                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-right:3px solid #f39c12;">🧪 <b style="color:#f39c12;">Backtest:</b> اختبار على بيانات سابقة</div>
                         </div>
                     </div>
                 </div>
-
-                <!-- Step 4: Report Reading -->
                 <div class="tut-card" style="background:linear-gradient(135deg,rgba(155,89,182,0.08),rgba(0,0,0,0.4));border:1px solid rgba(155,89,182,0.2);border-radius:16px;padding:22px;margin-bottom:16px;">
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-                        <span style="background:#9b59b6;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9rem;">4</span>
+                        <span style="background:#9b59b6;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;">4</span>
                         <h3 style="color:#9b59b6;margin:0;font-size:1.1rem;">📋 كيف تقرأ التقرير</h3>
                     </div>
-                    <p style="color:#ccc;line-height:1.8;font-size:0.88rem;margin:0 0 12px 0;">لما تحلل سهم، التقرير يحتوي على:</p>
                     <div style="background:rgba(0,0,0,0.3);border-radius:10px;padding:14px;font-size:0.82rem;">
                         <div style="display:grid;gap:6px;">
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">🎯 <b style="color:#d4af37;">Smart Score (0-100):</b> كل ما ارتفع الرقم = السهم أقوى. فوق 70 = ممتاز</div>
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">🟢 <b style="color:#26a69a;">شراء قوي / شراء:</b> السهم عنده إشارات إيجابية كثيرة</div>
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">🟡 <b style="color:#f0c040;">انتظار:</b> السهم مو واضح اتجاهه — لا تدخل الآن</div>
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">🔴 <b style="color:#ef5350;">بيع / تجنب:</b> إشارات سلبية — ابتعد أو بيع إذا عندك</div>
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">📐 <b style="color:#fff;">RSI:</b> فوق 70 = تشبع شراء (خطر)، تحت 30 = تشبع بيع (فرصة)</div>
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">📊 <b style="color:#fff;">MACD:</b> لو صعودي (أخضر) = زخم إيجابي، هبوطي (أحمر) = سلبي</div>
+                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">🎯 <b style="color:#d4af37;">Smart Score (0-100):</b> فوق 70 = ممتاز</div>
+                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">🟢 <b style="color:#26a69a;">شراء قوي:</b> إشارات إيجابية كثيرة</div>
+                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">🔴 <b style="color:#ef5350;">بيع / تجنب:</b> إشارات سلبية</div>
+                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">📐 <b style="color:#fff;">RSI:</b> فوق 70 = تشبع شراء، تحت 30 = فرصة</div>
                         </div>
                     </div>
                 </div>
-
-                <!-- Step 5: Chart -->
-                <div class="tut-card" style="background:linear-gradient(135deg,rgba(231,76,60,0.08),rgba(0,0,0,0.4));border:1px solid rgba(231,76,60,0.2);border-radius:16px;padding:22px;margin-bottom:16px;">
-                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-                        <span style="background:#e74c3c;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9rem;">5</span>
-                        <h3 style="color:#e74c3c;margin:0;font-size:1.1rem;">📈 الشارت (الرسم البياني)</h3>
-                    </div>
-                    <p style="color:#ccc;line-height:1.8;font-size:0.88rem;margin:0 0 12px 0;">يظهر تحت التقرير — فيه كل شيء بصرياً:</p>
-                    <div style="background:rgba(0,0,0,0.3);border-radius:10px;padding:14px;font-size:0.82rem;">
-                        <div style="display:grid;gap:6px;">
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">🕯️ <b style="color:#26a69a;">الشموع الخضراء:</b> السعر طلع (الإغلاق أعلى من الافتتاح)</div>
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">🕯️ <b style="color:#ef5350;">الشموع الحمراء:</b> السعر نزل (الإغلاق أقل من الافتتاح)</div>
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">📏 <b style="color:#ffd43b;">الخطوط الملونة (EMA):</b> متوسطات متحركة — لو السعر فوقها = صعودي</div>
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">🟢 <b style="color:#26a69a;">خط الدعم (أخضر):</b> السعر يرتد منه صعوداً عادةً</div>
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">🔴 <b style="color:#ef5350;">خط المقاومة (أحمر):</b> السعر يواجه صعوبة في تجاوزه</div>
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">📊 <b style="color:#fff;">أعمدة الحجم:</b> كل ما كان الحجم أكبر = حركة أقوى وأصدق</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 6: Market Pulse -->
-                <div class="tut-card" style="background:linear-gradient(135deg,rgba(241,196,15,0.08),rgba(0,0,0,0.4));border:1px solid rgba(241,196,15,0.2);border-radius:16px;padding:22px;margin-bottom:16px;">
-                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-                        <span style="background:#f1c40f;color:#000;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9rem;">6</span>
-                        <h3 style="color:#f1c40f;margin:0;font-size:1.1rem;">📊 نبض السوق + الأرباح القادمة</h3>
-                    </div>
-                    <div style="background:rgba(0,0,0,0.3);border-radius:10px;padding:14px;font-size:0.82rem;">
-                        <div style="display:grid;gap:6px;">
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">📈 <b style="color:#26a69a;">الأكثر ارتفاعاً:</b> أسهم طالعة بقوة اليوم — ممكن تكون فرص</div>
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">📉 <b style="color:#ef5350;">الأكثر انخفاضاً:</b> أسهم نازلة بقوة — احذر تتداول ضد الاتجاه</div>
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">📅 <b style="color:#f1c40f;">أرباح قادمة:</b> شركات بتعلن أرباح — السعر يتحرك بقوة ⚡ لا تشتري قبلها إلا بحذر</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 7: Auto Trading -->
                 <div class="tut-card" style="background:linear-gradient(135deg,rgba(26,188,156,0.08),rgba(0,0,0,0.4));border:1px solid rgba(26,188,156,0.2);border-radius:16px;padding:22px;margin-bottom:16px;">
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-                        <span style="background:#1abc9c;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9rem;">7</span>
+                        <span style="background:#1abc9c;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;">5</span>
                         <h3 style="color:#1abc9c;margin:0;font-size:1.1rem;">🤖 التداول الآلي + المحفظة</h3>
                     </div>
                     <div style="background:rgba(0,0,0,0.3);border-radius:10px;padding:14px;font-size:0.82rem;">
                         <div style="display:grid;gap:6px;">
-                            <div style="padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-right:3px solid #1abc9c;">🤖 <b style="color:#1abc9c;">التداول الآلي:</b> بوت يتداول بفلوس وهمية $100,000. اضغط "تشغيل" ثم "مسح السوق" — يحلل 15 سهم ويدخل صفقات تلقائية. تابع أداءه!</div>
-                            <div style="padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-right:3px solid #3498db;">💼 <b style="color:#3498db;">المحفظة:</b> لما تحلل سهم وتعجبك التوصية → اضغط "حفظ بالمحفظة" → يتتبع ربحك/خسارتك بأسعار حقيقية</div>
+                            <div style="padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-right:3px solid #1abc9c;">🤖 <b style="color:#1abc9c;">التداول الآلي:</b> بوت بفلوس وهمية $100K. شغّله واضغط "مسح السوق"</div>
+                            <div style="padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-right:3px solid #3498db;">💼 <b style="color:#3498db;">المحفظة:</b> حلل سهم → "حفظ بالمحفظة" → تتبع الربح/الخسارة</div>
                         </div>
                     </div>
-                    <div style="background:rgba(241,196,15,0.08);border:1px solid rgba(241,196,15,0.15);border-radius:8px;padding:10px;font-size:0.78rem;color:#f1c40f;margin-top:10px;">
-                        ⚠️ <b>تنبيه:</b> كل شيء تجريبي — لا يستخدم فلوس حقيقية. تعلّم أولاً ثم قرر!
-                    </div>
+                    <div style="background:rgba(241,196,15,0.08);border:1px solid rgba(241,196,15,0.15);border-radius:8px;padding:10px;font-size:0.78rem;color:#f1c40f;margin-top:10px;">⚠️ <b>تنبيه:</b> كل شيء تجريبي — لا يستخدم فلوس حقيقية!</div>
                 </div>
 
-                <!-- Step 8: Morning Briefing -->
-                <div class="tut-card" style="background:linear-gradient(135deg,rgba(243,156,18,0.08),rgba(0,0,0,0.4));border:1px solid rgba(243,156,18,0.2);border-radius:16px;padding:22px;margin-bottom:16px;">
+                {% else %}
+                <!-- ENGLISH Tutorial -->
+                <div class="tut-card" style="background:linear-gradient(135deg,rgba(212,175,55,0.08),rgba(0,0,0,0.4));border:1px solid rgba(212,175,55,0.2);border-radius:16px;padding:22px;margin-bottom:16px;">
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-                        <span style="background:#f39c12;color:#000;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.9rem;">8</span>
-                        <h3 style="color:#f39c12;margin:0;font-size:1.1rem;">☀️ ملخص الصباح + القائمة الجانبية</h3>
+                        <span style="background:#d4af37;color:#000;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;">1</span>
+                        <h3 style="color:#d4af37;margin:0;font-size:1.1rem;">💬 Chat Box</h3>
+                    </div>
+                    <p style="color:#ccc;line-height:1.8;font-size:0.88rem;margin:0 0 12px 0;">This is the <b style="color:#fff;">heart of the platform</b>. Type any stock name and get a full analysis.</p>
+                    <div style="background:rgba(0,0,0,0.3);border-radius:10px;padding:14px;margin-bottom:10px;">
+                        <p style="color:#d4af37;font-weight:700;margin:0 0 8px 0;font-size:0.82rem;">📝 Examples you can type:</p>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.8rem;">
+                            <div style="background:rgba(255,255,255,0.04);padding:8px;border-radius:6px;color:#aaa;"><b style="color:#26a69a;">TSLA</b> → Full Tesla report</div>
+                            <div style="background:rgba(255,255,255,0.04);padding:8px;border-radius:6px;color:#aaa;"><b style="color:#26a69a;">signal AAPL</b> → Entry/stop/target</div>
+                            <div style="background:rgba(255,255,255,0.04);padding:8px;border-radius:6px;color:#aaa;"><b style="color:#26a69a;">compare AAPL MSFT</b> → Compare two stocks</div>
+                            <div style="background:rgba(255,255,255,0.04);padding:8px;border-radius:6px;color:#aaa;"><b style="color:#26a69a;">scan</b> → Find opportunities</div>
+                        </div>
+                    </div>
+                    <div style="background:rgba(46,204,113,0.08);border:1px solid rgba(46,204,113,0.15);border-radius:8px;padding:10px;font-size:0.78rem;color:#2ecc71;">💡 <b>Tip:</b> You can type in Arabic or English — the bot understands both!</div>
+                </div>
+                <div class="tut-card" style="background:linear-gradient(135deg,rgba(52,152,219,0.08),rgba(0,0,0,0.4));border:1px solid rgba(52,152,219,0.2);border-radius:16px;padding:22px;margin-bottom:16px;">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                        <span style="background:#3498db;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;">2</span>
+                        <h3 style="color:#3498db;margin:0;font-size:1.1rem;">⏱️ Timeframe</h3>
+                    </div>
+                    <p style="color:#ccc;line-height:1.8;font-size:0.88rem;margin:0 0 12px 0;">The dropdown next to the input sets the <b style="color:#fff;">analysis period</b>:</p>
+                    <div style="background:rgba(0,0,0,0.3);border-radius:10px;padding:14px;font-size:0.82rem;">
+                        <div style="display:grid;gap:6px;">
+                            <div style="display:flex;justify-content:space-between;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;"><span style="color:#d4af37;">15 / 30 Minutes</span><span style="color:#aaa;">Day Trading</span></div>
+                            <div style="display:flex;justify-content:space-between;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;"><span style="color:#d4af37;">1 Hour</span><span style="color:#aaa;">Swing Trading (2-5 days)</span></div>
+                            <div style="display:flex;justify-content:space-between;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;"><span style="color:#d4af37;">Daily</span><span style="color:#aaa;">Medium-term investing</span></div>
+                            <div style="display:flex;justify-content:space-between;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;"><span style="color:#d4af37;">Monthly</span><span style="color:#aaa;">Long-term investing</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tut-card" style="background:linear-gradient(135deg,rgba(46,204,113,0.08),rgba(0,0,0,0.4));border:1px solid rgba(46,204,113,0.2);border-radius:16px;padding:22px;margin-bottom:16px;">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                        <span style="background:#2ecc71;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;">3</span>
+                        <h3 style="color:#2ecc71;margin:0;font-size:1.1rem;">⚡ Quick Action Buttons</h3>
                     </div>
                     <div style="background:rgba(0,0,0,0.3);border-radius:10px;padding:14px;font-size:0.82rem;">
                         <div style="display:grid;gap:6px;">
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">☀️ <b style="color:#f39c12;">ملخص الصباح:</b> تقرير يومي بأداء المؤشرات + مؤشر الخوف VIX + أفضل الفرص</div>
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">🎧 <b style="color:#fff;">الدعم الفني:</b> عندك مشكلة أو سؤال؟ ارسل تذكرة للدعم</div>
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">🌐 <b style="color:#fff;">تغيير اللغة:</b> عربي ↔ English</div>
-                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">🔐 <b style="color:#fff;">تغيير كلمة المرور:</b> من صفحة الملف الشخصي أسفل القائمة</div>
+                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-left:3px solid #e2c044;">📊 <b style="color:#e2c044;">Technical:</b> RSI, MACD — measures momentum</div>
+                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-left:3px solid #3498db;">🏢 <b style="color:#3498db;">Fundamental:</b> Earnings & financial ratios</div>
+                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-left:3px solid #9b59b6;">🧠 <b style="color:#9b59b6;">AI Prediction:</b> AI opinion on the stock</div>
+                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-left:3px solid #e74c3c;">🎯 <b style="color:#e74c3c;">Signal:</b> Entry + stop loss + target</div>
+                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-left:3px solid #f39c12;">🧪 <b style="color:#f39c12;">Backtest:</b> Test strategy on historical data</div>
                         </div>
                     </div>
                 </div>
+                <div class="tut-card" style="background:linear-gradient(135deg,rgba(155,89,182,0.08),rgba(0,0,0,0.4));border:1px solid rgba(155,89,182,0.2);border-radius:16px;padding:22px;margin-bottom:16px;">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                        <span style="background:#9b59b6;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;">4</span>
+                        <h3 style="color:#9b59b6;margin:0;font-size:1.1rem;">📋 How to Read Reports</h3>
+                    </div>
+                    <div style="background:rgba(0,0,0,0.3);border-radius:10px;padding:14px;font-size:0.82rem;">
+                        <div style="display:grid;gap:6px;">
+                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">🎯 <b style="color:#d4af37;">Smart Score (0-100):</b> Above 70 = Excellent</div>
+                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">🟢 <b style="color:#26a69a;">Strong Buy:</b> Many positive signals</div>
+                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">🔴 <b style="color:#ef5350;">Sell / Avoid:</b> Negative signals</div>
+                            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;">📐 <b style="color:#fff;">RSI:</b> Above 70 = Overbought, Below 30 = Opportunity</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tut-card" style="background:linear-gradient(135deg,rgba(26,188,156,0.08),rgba(0,0,0,0.4));border:1px solid rgba(26,188,156,0.2);border-radius:16px;padding:22px;margin-bottom:16px;">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                        <span style="background:#1abc9c;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;">5</span>
+                        <h3 style="color:#1abc9c;margin:0;font-size:1.1rem;">🤖 Auto Trading + Portfolio</h3>
+                    </div>
+                    <div style="background:rgba(0,0,0,0.3);border-radius:10px;padding:14px;font-size:0.82rem;">
+                        <div style="display:grid;gap:6px;">
+                            <div style="padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-left:3px solid #1abc9c;">🤖 <b style="color:#1abc9c;">Auto Trading:</b> Bot with $100K virtual money. Enable it and click "Scan Market"</div>
+                            <div style="padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:6px;color:#ccc;border-left:3px solid #3498db;">💼 <b style="color:#3498db;">Portfolio:</b> Analyze a stock → "Save to Portfolio" → Track P&L live</div>
+                        </div>
+                    </div>
+                    <div style="background:rgba(241,196,15,0.08);border:1px solid rgba(241,196,15,0.15);border-radius:8px;padding:10px;font-size:0.78rem;color:#f1c40f;margin-top:10px;">⚠️ <b>Note:</b> Everything is simulated — no real money is used!</div>
+                </div>
+                {% endif %}
 
                 <!-- Close Button -->
                 <div style="text-align:center;margin-top:20px;">
-                    <button onclick="closeTutorial()" style="background:linear-gradient(135deg,#d4af37,#b8960c);color:#000;border:none;padding:12px 40px;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;">✅ فهمت، ابدأ التداول!</button>
-                    <p style="color:#666;font-size:0.75rem;margin-top:10px;">يمكنك فتح هذا الدليل في أي وقت بالضغط على زر ❓ الذهبي</p>
+                    <button onclick="closeTutorial()" style="background:linear-gradient(135deg,#d4af37,#b8960c);color:#000;border:none;padding:12px 40px;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;">{{ t.tut_done }}</button>
+                    <p style="color:#666;font-size:0.75rem;margin-top:10px;">{{ t.tut_reopen }}</p>
                 </div>
             </div>
         </div>
-
         <style>
             @keyframes helpPulse {
                 0%, 100% { box-shadow: 0 4px 20px rgba(212,175,55,0.4); }
@@ -1273,7 +1282,7 @@
                     <div class="panel-header">
                         <i class="fas fa-wave-square"></i>
                         <h3>{{ t.market_pulse or 'نبض السوق (الأكثر تحركاً)' }}</h3>
-                        <span class="tooltip-help">?<span class="tooltip-text"><b>📊 نبض السوق</b>يعرض الأسهم الأكثر ارتفاعاً وانخفاضاً اليوم في السوق الأمريكي. اضغط على أي سهم لتحليله مباشرة.</span></span>
+                        <span class="tooltip-help">?<span class="tooltip-text">{% if lang == "en" %}<b>📊 Market Pulse</b>Shows today's top gainers & losers in the US market. Click any stock to analyze.{% else %}<b>📊 نبض السوق</b>يعرض الأسهم الأكثر ارتفاعاً وانخفاضاً اليوم في السوق الأمريكي. اضغط على أي سهم لتحليله مباشرة.{% endif %}</span></span>
                     </div>
                     <div style="padding: 15px;">
                         <div style="margin-bottom: 20px;">
@@ -1296,7 +1305,7 @@
                     <div class="panel-header">
                         <i class="fas fa-calendar-alt"></i>
                         <h3>{{ t.upcoming_earnings or 'أرباح قادمة (هذا الأسبوع)' }}</h3>
-                        <span class="tooltip-help">?<span class="tooltip-text"><b>📅 أرباح قادمة</b>الشركات اللي بتعلن أرباحها هذا الأسبوع. مهم جداً لأن سعر السهم يتأثر بقوة عند إعلان الأرباح ⚡ تابعها قبل ما تتداول.</span></span>
+                        <span class="tooltip-help">?<span class="tooltip-text">{% if lang == "en" %}<b>📅 Upcoming Earnings</b>Companies reporting this week. Prices move sharply on earnings ⚡ Watch before trading.{% else %}<b>📅 أرباح قادمة</b>الشركات اللي بتعلن أرباحها هذا الأسبوع. مهم جداً لأن سعر السهم يتأثر بقوة عند إعلان الأرباح ⚡ تابعها قبل ما تتداول.{% endif %}</span></span>
                     </div>
                     <div style="padding: 15px;">
                         <div id="earnings-list" class="movers-grid">
@@ -1311,7 +1320,7 @@
                         <div style="display:flex;align-items:center;gap:10px;">
                             <i class="fas fa-robot"></i>
                             <h3>{{ t.auto_trading }}</h3>
-                            <span class="tooltip-help">?<span class="tooltip-text"><b>🤖 التداول الآلي</b>نظام تداول تجريبي بفلوس وهمية ($100,000). يمسح 15 سهم → يفتح صفقات تلقائية بناءً على التحليل الفني. شغّله واضغط "مسح السوق" لبدء التداول التجريبي!</span></span>
+                            <span class="tooltip-help">?<span class="tooltip-text">{% if lang == "en" %}<b>🤖 Auto Trading</b>Paper trading with $100K virtual money. Scans 15 stocks → opens trades based on technical analysis. Enable and click "Scan Market"!{% else %}<b>🤖 التداول الآلي</b>نظام تداول تجريبي بفلوس وهمية ($100,000). يمسح 15 سهم → يفتح صفقات تلقائية بناءً على التحليل الفني. شغّله واضغط "مسح السوق" لبدء التداول التجريبي!{% endif %}</span></span>
                             <span id="at-status-badge" style="padding:3px 10px;border-radius:12px;font-size:0.72em;font-weight:700;background:rgba(239,83,80,0.15);color:#ef5350;">{{ t.auto_trade_off }}</span>
                         </div>
                         <div style="display:flex;gap:8px;">
@@ -1375,7 +1384,7 @@
                     <div class="panel-header">
                         <i class="fas fa-briefcase"></i>
                         <h3>{{ t.portfolio_title }}</h3>
-                        <span class="tooltip-help">?<span class="tooltip-text"><b>💼 محفظتي التجريبية</b>تتبع صفقاتك بأسعار حقيقية بدون فلوس حقيقية! حلل أي سهم → اضغط "حفظ بالمحفظة" → يتتبع الربح/الخسارة تلقائياً.</span></span>
+                        <span class="tooltip-help">?<span class="tooltip-text">{% if lang == "en" %}<b>💼 My Portfolio</b>Track trades with real prices, no real money! Analyze → "Save to Portfolio" → auto-tracks P&L.{% else %}<b>💼 محفظتي التجريبية</b>تتبع صفقاتك بأسعار حقيقية بدون فلوس حقيقية! حلل أي سهم → اضغط "حفظ بالمحفظة" → يتتبع الربح/الخسارة تلقائياً.{% endif %}</span></span>
                         <div style="margin-right: auto;">
                             <span id="portfolio-total-pnl" style="font-weight: bold; font-size: 1.1rem;">$0.00</span>
                         </div>
@@ -1408,7 +1417,7 @@
                         <div style="display:flex;align-items:center;gap:12px;">
                             <i class="fas fa-robot"></i>
                             <h3>{{ t.ai_advisor }}</h3>
-                            <span class="tooltip-help">?<span class="tooltip-text"><b>🤖 المحلل الذكي</b>اكتب اسم أي سهم بالعربي أو الإنجليزي وسيعطيك:<br>📊 تحليل فني (RSI, MACD, EMA)<br>💰 تحليل أساسي (P/E, Revenue)<br>🧠 رأي الذكاء الاصطناعي<br>🎯 نقاط الدخول والخروج</span></span>
+                            <span class="tooltip-help">?<span class="tooltip-text">{% if lang == "en" %}<b>🤖 Smart Analyzer</b>Type any stock:<br>📊 Technical (RSI, MACD, EMA)<br>💰 Fundamental (P/E, Revenue)<br>🧠 AI Opinion<br>🎯 Entry & Exit Points{% else %}<b>🤖 المحلل الذكي</b>اكتب اسم أي سهم بالعربي أو الإنجليزي وسيعطيك:<br>📊 تحليل فني (RSI, MACD, EMA)<br>💰 تحليل أساسي (P/E, Revenue)<br>🧠 رأي الذكاء الاصطناعي<br>🎯 نقاط الدخول والخروج{% endif %}</span></span>
                         </div>
                         <button onclick="clearChat()" style="background:none;border:1px solid rgba(255,77,77,0.3);color:#ff4d4d;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:0.78rem;transition:all 0.3s;display:flex;align-items:center;gap:6px;font-family:inherit;" onmouseover="this.style.background='rgba(255,77,77,0.15)'" onmouseout="this.style.background='none'">
                             <i class="fas fa-trash-alt"></i> {{ t.chat_clear }}
@@ -1503,7 +1512,7 @@
                             <!-- Analysis Actions -->
                             <div class="quick-actions" style="margin-bottom: 6px;">
                                 <span class="qa-label"><i class="fas fa-chart-line"></i> {{ t.analysis }}:
-                                    <span class="tooltip-help" style="width:14px;height:14px;font-size:0.5rem;margin-right:2px;">?<span class="tooltip-text"><b>📊 أزرار التحليل</b>• <b>تحليل فني:</b> RSI, MACD, مستويات الدعم/المقاومة<br>• <b>أساسي:</b> أرباح الشركة ونسبها المالية<br>• <b>توقع:</b> رأي الذكاء الاصطناعي عن مستقبل السهم</span></span>
+                                    <span class="tooltip-help" style="width:14px;height:14px;font-size:0.5rem;margin-right:2px;">?<span class="tooltip-text">{% if lang == "en" %}<b>📊 Analysis Buttons</b>• <b>Technical:</b> RSI, MACD, Support/Resistance<br>• <b>Fundamental:</b> Earnings & ratios<br>• <b>Prediction:</b> AI opinion{% else %}<b>📊 أزرار التحليل</b>• <b>تحليل فني:</b> RSI, MACD, مستويات الدعم/المقاومة<br>• <b>أساسي:</b> أرباح الشركة ونسبها المالية<br>• <b>توقع:</b> رأي الذكاء الاصطناعي عن مستقبل السهم{% endif %}</span></span>
                                 </span>
                                 <button onclick="sendQuickMessage('تحليل فني TSLA')" class="action-pill" title="يحلل المؤشرات الفنية مثل RSI و MACD والمتوسطات المتحركة"><i class="fas fa-chart-bar"></i> {{ t.technical_analysis }} TSLA</button>
                                 <button onclick="sendQuickMessage('تحليل أساسي AAPL')" class="action-pill" title="يحلل أرباح الشركة ونسبة P/E والإيرادات والنمو"><i class="fas fa-building"></i> {{ t.fundamental }} AAPL</button>
@@ -1512,7 +1521,7 @@
                             <!-- Trading Actions -->
                             <div class="quick-actions">
                                 <span class="qa-label"><i class="fas fa-bolt"></i> {{ t.trading }}:
-                                    <span class="tooltip-help" style="width:14px;height:14px;font-size:0.5rem;margin-right:2px;">?<span class="tooltip-text"><b>⚡ أزرار التداول</b>• <b>فرص:</b> يمسح السوق ويختار أفضل سهم للشراء<br>• <b>توصية:</b> نقاط دخول/خروج/وقف خسارة<br>• <b>خيارات:</b> عقود Call/Put<br>• <b>Backtest:</b> اختبار الاستراتيجية على بيانات سابقة<br>• <b>مقارنة:</b> قارن سهمين جنب بعض</span></span>
+                                    <span class="tooltip-help" style="width:14px;height:14px;font-size:0.5rem;margin-right:2px;">?<span class="tooltip-text">{% if lang == "en" %}<b>⚡ Trading Buttons</b>• <b>Scan:</b> Finds the best stock to buy<br>• <b>Signal:</b> Entry/exit/stop loss<br>• <b>Options:</b> Call/Put<br>• <b>Backtest:</b> Test on past data<br>• <b>Compare:</b> Compare two stocks{% else %}<b>⚡ أزرار التداول</b>• <b>فرص:</b> يمسح السوق ويختار أفضل سهم للشراء<br>• <b>توصية:</b> نقاط دخول/خروج/وقف خسارة<br>• <b>خيارات:</b> عقود Call/Put<br>• <b>Backtest:</b> اختبار الاستراتيجية على بيانات سابقة<br>• <b>مقارنة:</b> قارن سهمين جنب بعض{% endif %}</span></span>
                                 </span>
                                 <button onclick="sendQuickMessage('عطني سهم')" class="action-pill pill-scan" title="يبحث عن أفضل فرص الشراء في السوق الآن"><i class="fas fa-search-dollar"></i> {{ t.scan_market }}</button>
                                 <button onclick="sendQuickMessage('توصية TSLA')" class="action-pill pill-signal" title="يعطيك توصية شراء/بيع مع نقاط الدخول والوقف والهدف"><i class="fas fa-signal"></i> {{ t.trade_signal }} TSLA</button>
@@ -1532,7 +1541,7 @@
                                 <option value="1d">{{ t.timeframe_1d }}</option>
                                 <option value="1mo">{{ t.timeframe_1mo }}</option>
                             </select>
-                            <span class="tooltip-help" style="position:absolute;top:-8px;left:-5px;width:14px;height:14px;font-size:0.5rem;">?<span class="tooltip-text"><b>⏱️ الإطار الزمني</b>اختر الفترة الزمنية للتحليل:<br>• 15 دقيقة / 30 دقيقة = للمضاربة اليومية<br>• ساعة = للسوينق (أيام)<br>• يومي = للاستثمار المتوسط<br>• شهري = للاستثمار طويل المدى</span></span>
+                            <span class="tooltip-help" style="position:absolute;top:-8px;left:-5px;width:14px;height:14px;font-size:0.5rem;">?<span class="tooltip-text">{% if lang == "en" %}<b>⏱️ Timeframe</b>Choose the analysis period:<br>• 15/30 min = Day trading<br>• 1 Hour = Swing trading<br>• Daily = Medium-term<br>• Monthly = Long-term{% else %}<b>⏱️ الإطار الزمني</b>اختر الفترة الزمنية للتحليل:<br>• 15 دقيقة / 30 دقيقة = للمضاربة اليومية<br>• ساعة = للسوينق (أيام)<br>• يومي = للاستثمار المتوسط<br>• شهري = للاستثمار طويل المدى{% endif %}</span></span>
                         </div>
                         <input type="text" id="user-input" placeholder="{{ t.input_placeholder }}"
                             autocomplete="off">

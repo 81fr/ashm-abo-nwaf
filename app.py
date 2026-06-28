@@ -515,14 +515,23 @@ def chat():
         "1mo": "5y"
     }
     
-    # Map timeframe to Arabic title
-    timeframe_titles = {
-        "15m": "لحظي (15 دقيقة)",
-        "30m": "لحظي (30 دقيقة)",
-        "1h": "لحظي (ساعة)",
-        "1d": "يومي",
-        "1mo": "شهري"
-    }
+    # Map timeframe to title (bilingual)
+    if lang == 'en':
+        timeframe_titles = {
+            "15m": "Intraday (15min)",
+            "30m": "Intraday (30min)",
+            "1h": "Intraday (1h)",
+            "1d": "Daily",
+            "1mo": "Monthly"
+        }
+    else:
+        timeframe_titles = {
+            "15m": "لحظي (15 دقيقة)",
+            "30m": "لحظي (30 دقيقة)",
+            "1h": "لحظي (ساعة)",
+            "1d": "يومي",
+            "1mo": "شهري"
+        }
     
     period = timeframe_to_period.get(timeframe, "1y")
     tf_title = timeframe_titles.get(timeframe, "يومي")
