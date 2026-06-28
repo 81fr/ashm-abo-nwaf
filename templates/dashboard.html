@@ -394,6 +394,72 @@
             font-weight: 700;
         }
 
+        /* Tooltip Help System */
+        .tooltip-help {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: rgba(212, 175, 55, 0.15);
+            color: #d4af37;
+            font-size: 0.6rem;
+            font-weight: 700;
+            cursor: help;
+            position: relative;
+            margin-right: 6px;
+            flex-shrink: 0;
+            border: 1px solid rgba(212, 175, 55, 0.25);
+            transition: all 0.3s;
+        }
+        .tooltip-help:hover {
+            background: rgba(212, 175, 55, 0.3);
+            transform: scale(1.15);
+        }
+        .tooltip-help .tooltip-text {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            bottom: calc(100% + 10px);
+            right: 50%;
+            transform: translateX(50%);
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #eee;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 0.78rem;
+            font-weight: 400;
+            line-height: 1.7;
+            width: 260px;
+            z-index: 9999;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            transition: all 0.25s;
+            pointer-events: none;
+            text-align: right;
+        }
+        .tooltip-help .tooltip-text::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            right: 50%;
+            transform: translateX(50%);
+            border: 6px solid transparent;
+            border-top-color: rgba(212, 175, 55, 0.2);
+        }
+        .tooltip-help:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+            bottom: calc(100% + 8px);
+        }
+        .tooltip-help .tooltip-text b {
+            color: #d4af37;
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.82rem;
+        }
+
         .api-input-group {
             display: flex;
             flex-direction: column;
@@ -830,6 +896,7 @@
                     <a href="#" class="nav-link active">
                         <i class="fas fa-chart-line"></i>
                         <span>{{ t.ai_advisor }}</span>
+                        <span class="tooltip-help">?<span class="tooltip-text"><b>💡 المستشار الذكي</b>الصفحة الرئيسية — اكتب اسم أي سهم (مثل TSLA أو تسلا) وسيعطيك تحليل فني + أساسي + رأي الذكاء الاصطناعي</span></span>
                     </a>
                 </li>
                 {% if session['role'] == 'admin' %}
@@ -851,6 +918,7 @@
                     <a href="javascript:void(0)" onclick="openSupportModal()" class="nav-link">
                         <i class="fas fa-headset"></i>
                         <span>{{ t.support }}</span>
+                        <span class="tooltip-help">?<span class="tooltip-text"><b>🎧 الدعم الفني</b>تواصل مع فريق الدعم مباشرة. اكتب مشكلتك أو سؤالك وسيرد عليك الفريق في أقرب وقت.</span></span>
                         <span id="support-badge" class="nav-badge"></span>
                     </a>
                 </li>
@@ -858,6 +926,7 @@
                     <a href="javascript:void(0)" onclick="showMorningBriefing(true)" class="nav-link">
                         <i class="fas fa-sun" style="color: #e2c044;"></i>
                         <span>ملخص الصباح الذكي</span>
+                        <span class="tooltip-help">?<span class="tooltip-text"><b>☀️ ملخص الصباح</b>تقرير يومي شامل يتضمن أداء المؤشرات (S&P 500, Nasdaq, Dow) + حالة الخوف والطمع (VIX) + أفضل فرص اليوم. اضغط لعرضه.</span></span>
                     </a>
                 </li>
                 <li class="nav-item" style="margin-top: 10px;">
@@ -1006,6 +1075,7 @@
                     <div class="panel-header">
                         <i class="fas fa-wave-square"></i>
                         <h3>{{ t.market_pulse or 'نبض السوق (الأكثر تحركاً)' }}</h3>
+                        <span class="tooltip-help">?<span class="tooltip-text"><b>📊 نبض السوق</b>يعرض الأسهم الأكثر ارتفاعاً وانخفاضاً اليوم في السوق الأمريكي. اضغط على أي سهم لتحليله مباشرة.</span></span>
                     </div>
                     <div style="padding: 15px;">
                         <div style="margin-bottom: 20px;">
@@ -1028,6 +1098,7 @@
                     <div class="panel-header">
                         <i class="fas fa-calendar-alt"></i>
                         <h3>{{ t.upcoming_earnings or 'أرباح قادمة (هذا الأسبوع)' }}</h3>
+                        <span class="tooltip-help">?<span class="tooltip-text"><b>📅 أرباح قادمة</b>الشركات اللي بتعلن أرباحها هذا الأسبوع. مهم جداً لأن سعر السهم يتأثر بقوة عند إعلان الأرباح ⚡ تابعها قبل ما تتداول.</span></span>
                     </div>
                     <div style="padding: 15px;">
                         <div id="earnings-list" class="movers-grid">
@@ -1042,6 +1113,7 @@
                         <div style="display:flex;align-items:center;gap:10px;">
                             <i class="fas fa-robot"></i>
                             <h3>🤖 التداول الآلي التجريبي</h3>
+                            <span class="tooltip-help">?<span class="tooltip-text"><b>🤖 التداول الآلي</b>نظام تداول تجريبي بفلوس وهمية ($100,000). يمسح 15 سهم → يفتح صفقات تلقائية بناءً على التحليل الفني. شغّله واضغط "مسح السوق" لبدء التداول التجريبي!</span></span>
                             <span id="at-status-badge" style="padding:3px 10px;border-radius:12px;font-size:0.72em;font-weight:700;background:rgba(239,83,80,0.15);color:#ef5350;">معطل</span>
                         </div>
                         <div style="display:flex;gap:8px;">
@@ -1105,6 +1177,7 @@
                     <div class="panel-header">
                         <i class="fas fa-briefcase"></i>
                         <h3>محفظتي التجريبية (Live Tracker)</h3>
+                        <span class="tooltip-help">?<span class="tooltip-text"><b>💼 محفظتي التجريبية</b>تتبع صفقاتك بأسعار حقيقية بدون فلوس حقيقية! حلل أي سهم → اضغط "حفظ بالمحفظة" → يتتبع الربح/الخسارة تلقائياً.</span></span>
                         <div style="margin-right: auto;">
                             <span id="portfolio-total-pnl" style="font-weight: bold; font-size: 1.1rem;">$0.00</span>
                         </div>
@@ -1137,6 +1210,7 @@
                         <div style="display:flex;align-items:center;gap:12px;">
                             <i class="fas fa-robot"></i>
                             <h3>{{ t.ai_advisor }}</h3>
+                            <span class="tooltip-help">?<span class="tooltip-text"><b>🤖 المحلل الذكي</b>اكتب اسم أي سهم بالعربي أو الإنجليزي وسيعطيك:<br>📊 تحليل فني (RSI, MACD, EMA)<br>💰 تحليل أساسي (P/E, Revenue)<br>🧠 رأي الذكاء الاصطناعي<br>🎯 نقاط الدخول والخروج</span></span>
                         </div>
                         <button onclick="clearChat()" style="background:none;border:1px solid rgba(255,77,77,0.3);color:#ff4d4d;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:0.78rem;transition:all 0.3s;display:flex;align-items:center;gap:6px;font-family:inherit;" onmouseover="this.style.background='rgba(255,77,77,0.15)'" onmouseout="this.style.background='none'">
                             <i class="fas fa-trash-alt"></i> مسح
@@ -1230,31 +1304,38 @@
                         <div class="quick-actions-categories">
                             <!-- Analysis Actions -->
                             <div class="quick-actions" style="margin-bottom: 6px;">
-                                <span class="qa-label"><i class="fas fa-chart-line"></i> {{ t.analysis }}:</span>
-                                <button onclick="sendQuickMessage('تحليل فني TSLA')" class="action-pill"><i class="fas fa-chart-bar"></i> {{ t.technical_analysis }} TSLA</button>
-                                <button onclick="sendQuickMessage('تحليل أساسي AAPL')" class="action-pill"><i class="fas fa-building"></i> {{ t.fundamental }} AAPL</button>
-                                <button onclick="sendQuickMessage('توقع NVDA')" class="action-pill pill-ai"><i class="fas fa-brain"></i> {{ t.ai_prediction }} NVDA</button>
+                                <span class="qa-label"><i class="fas fa-chart-line"></i> {{ t.analysis }}:
+                                    <span class="tooltip-help" style="width:14px;height:14px;font-size:0.5rem;margin-right:2px;">?<span class="tooltip-text"><b>📊 أزرار التحليل</b>• <b>تحليل فني:</b> RSI, MACD, مستويات الدعم/المقاومة<br>• <b>أساسي:</b> أرباح الشركة ونسبها المالية<br>• <b>توقع:</b> رأي الذكاء الاصطناعي عن مستقبل السهم</span></span>
+                                </span>
+                                <button onclick="sendQuickMessage('تحليل فني TSLA')" class="action-pill" title="يحلل المؤشرات الفنية مثل RSI و MACD والمتوسطات المتحركة"><i class="fas fa-chart-bar"></i> {{ t.technical_analysis }} TSLA</button>
+                                <button onclick="sendQuickMessage('تحليل أساسي AAPL')" class="action-pill" title="يحلل أرباح الشركة ونسبة P/E والإيرادات والنمو"><i class="fas fa-building"></i> {{ t.fundamental }} AAPL</button>
+                                <button onclick="sendQuickMessage('توقع NVDA')" class="action-pill pill-ai" title="يستخدم الذكاء الاصطناعي لتوقع اتجاه السهم"><i class="fas fa-brain"></i> {{ t.ai_prediction }} NVDA</button>
                             </div>
                             <!-- Trading Actions -->
                             <div class="quick-actions">
-                                <span class="qa-label"><i class="fas fa-bolt"></i> {{ t.trading }}:</span>
-                                <button onclick="sendQuickMessage('عطني سهم')" class="action-pill pill-scan"><i class="fas fa-search-dollar"></i> {{ t.scan_market }}</button>
-                                <button onclick="sendQuickMessage('توصية TSLA')" class="action-pill pill-signal"><i class="fas fa-signal"></i> {{ t.trade_signal }} TSLA</button>
-                                <button onclick="sendQuickMessage('خيارات AAPL')" class="action-pill pill-options"><i class="fas fa-layer-group"></i> {{ t.options }} AAPL</button>
-                                <button onclick="runBacktest()" class="action-pill" style="background: rgba(155,89,182,0.15); color: #9b59b6;"><i class="fas fa-flask"></i> Backtest AAPL</button>
-                                <button onclick="sendQuickMessage('قارن AAPL MSFT')" class="action-pill" style="background: rgba(52,152,219,0.15); color: #3498db;"><i class="fas fa-balance-scale"></i> {{ t.compare or 'مقارنة' }}</button>
+                                <span class="qa-label"><i class="fas fa-bolt"></i> {{ t.trading }}:
+                                    <span class="tooltip-help" style="width:14px;height:14px;font-size:0.5rem;margin-right:2px;">?<span class="tooltip-text"><b>⚡ أزرار التداول</b>• <b>فرص:</b> يمسح السوق ويختار أفضل سهم للشراء<br>• <b>توصية:</b> نقاط دخول/خروج/وقف خسارة<br>• <b>خيارات:</b> عقود Call/Put<br>• <b>Backtest:</b> اختبار الاستراتيجية على بيانات سابقة<br>• <b>مقارنة:</b> قارن سهمين جنب بعض</span></span>
+                                </span>
+                                <button onclick="sendQuickMessage('عطني سهم')" class="action-pill pill-scan" title="يبحث عن أفضل فرص الشراء في السوق الآن"><i class="fas fa-search-dollar"></i> {{ t.scan_market }}</button>
+                                <button onclick="sendQuickMessage('توصية TSLA')" class="action-pill pill-signal" title="يعطيك توصية شراء/بيع مع نقاط الدخول والوقف والهدف"><i class="fas fa-signal"></i> {{ t.trade_signal }} TSLA</button>
+                                <button onclick="sendQuickMessage('خيارات AAPL')" class="action-pill pill-options" title="يعرض عقود الخيارات (Options) المتاحة للسهم"><i class="fas fa-layer-group"></i> {{ t.options }} AAPL</button>
+                                <button onclick="runBacktest()" class="action-pill" style="background: rgba(155,89,182,0.15); color: #9b59b6;" title="يختبر استراتيجية EMA على بيانات 6 أشهر سابقة"><i class="fas fa-flask"></i> Backtest AAPL</button>
+                                <button onclick="sendQuickMessage('قارن AAPL MSFT')" class="action-pill" style="background: rgba(52,152,219,0.15); color: #3498db;" title="يقارن سهمين من حيث السعر والمؤشرات الفنية والأساسيات"><i class="fas fa-balance-scale"></i> {{ t.compare or 'مقارنة' }}</button>
                             </div>
                         </div>
                     </div>
 
                     <div class="chat-input-wrapper">
-                        <select id="timeframe-select" class="timeframe-select" title="Timeframe">
-                            <option value="15m" selected>{{ t.timeframe_15m }}</option>
-                            <option value="30m">{{ t.timeframe_30m }}</option>
-                            <option value="1h">{{ t.timeframe_1h }}</option>
-                            <option value="1d">{{ t.timeframe_1d }}</option>
-                            <option value="1mo">{{ t.timeframe_1mo }}</option>
-                        </select>
+                        <div style="position:relative;">
+                            <select id="timeframe-select" class="timeframe-select" title="Timeframe">
+                                <option value="15m" selected>{{ t.timeframe_15m }}</option>
+                                <option value="30m">{{ t.timeframe_30m }}</option>
+                                <option value="1h">{{ t.timeframe_1h }}</option>
+                                <option value="1d">{{ t.timeframe_1d }}</option>
+                                <option value="1mo">{{ t.timeframe_1mo }}</option>
+                            </select>
+                            <span class="tooltip-help" style="position:absolute;top:-8px;left:-5px;width:14px;height:14px;font-size:0.5rem;">?<span class="tooltip-text"><b>⏱️ الإطار الزمني</b>اختر الفترة الزمنية للتحليل:<br>• 15 دقيقة / 30 دقيقة = للمضاربة اليومية<br>• ساعة = للسوينق (أيام)<br>• يومي = للاستثمار المتوسط<br>• شهري = للاستثمار طويل المدى</span></span>
+                        </div>
                         <input type="text" id="user-input" placeholder="{{ t.input_placeholder }}"
                             autocomplete="off">
                         <button onclick="sendMessage()" class="send-btn" id="send-btn">
