@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="{{ lang }}" dir="{{ 'rtl' if lang == 'ar' else 'ltr' }}">
 
 <head>
     <meta charset="UTF-8">
@@ -925,14 +925,14 @@
                 <li class="nav-item">
                     <a href="javascript:void(0)" onclick="showMorningBriefing(true)" class="nav-link">
                         <i class="fas fa-sun" style="color: #e2c044;"></i>
-                        <span>ملخص الصباح الذكي</span>
+                        <span>{{ t.morning_briefing }}</span>
                         <span class="tooltip-help">?<span class="tooltip-text"><b>☀️ ملخص الصباح</b>تقرير يومي شامل يتضمن أداء المؤشرات (S&P 500, Nasdaq, Dow) + حالة الخوف والطمع (VIX) + أفضل فرص اليوم. اضغط لعرضه.</span></span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="javascript:void(0)" onclick="openTutorial()" class="nav-link" style="background:linear-gradient(135deg,rgba(212,175,55,0.08),transparent);border:1px solid rgba(212,175,55,0.15);border-radius:10px;">
                         <i class="fas fa-book-open" style="color: #d4af37;"></i>
-                        <span style="color:#d4af37;">📖 دليل الاستخدام</span>
+                        <span style="color:#d4af37;">{{ t.user_guide }}</span>
                     </a>
                 </li>
                 <li class="nav-item" style="margin-top: 10px;">
@@ -1277,13 +1277,13 @@
                     </div>
                     <div style="padding: 15px;">
                         <div style="margin-bottom: 20px;">
-                            <h4 style="color: #2ecc71; font-size: 0.9rem; margin-bottom: 10px;"><i class="fas fa-arrow-up"></i> الأكثر ارتفاعاً</h4>
+                            <h4 style="color: #2ecc71; font-size: 0.9rem; margin-bottom: 10px;"><i class="fas fa-arrow-up"></i> {{ t.most_up }}</h4>
                             <div id="gainers-list" class="movers-grid">
                                 <!-- Dynamic -->
                             </div>
                         </div>
                         <div>
-                            <h4 style="color: #e74c3c; font-size: 0.9rem; margin-bottom: 10px;"><i class="fas fa-arrow-down"></i> الأكثر انخفاضاً</h4>
+                            <h4 style="color: #e74c3c; font-size: 0.9rem; margin-bottom: 10px;"><i class="fas fa-arrow-down"></i> {{ t.most_down }}</h4>
                             <div id="losers-list" class="movers-grid">
                                 <!-- Dynamic -->
                             </div>
@@ -1310,16 +1310,16 @@
                     <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;">
                         <div style="display:flex;align-items:center;gap:10px;">
                             <i class="fas fa-robot"></i>
-                            <h3>🤖 التداول الآلي التجريبي</h3>
+                            <h3>{{ t.auto_trading }}</h3>
                             <span class="tooltip-help">?<span class="tooltip-text"><b>🤖 التداول الآلي</b>نظام تداول تجريبي بفلوس وهمية ($100,000). يمسح 15 سهم → يفتح صفقات تلقائية بناءً على التحليل الفني. شغّله واضغط "مسح السوق" لبدء التداول التجريبي!</span></span>
-                            <span id="at-status-badge" style="padding:3px 10px;border-radius:12px;font-size:0.72em;font-weight:700;background:rgba(239,83,80,0.15);color:#ef5350;">معطل</span>
+                            <span id="at-status-badge" style="padding:3px 10px;border-radius:12px;font-size:0.72em;font-weight:700;background:rgba(239,83,80,0.15);color:#ef5350;">{{ t.auto_trade_off }}</span>
                         </div>
                         <div style="display:flex;gap:8px;">
                             <button id="at-toggle-btn" onclick="toggleAutoTrade()" style="background:rgba(46,204,113,0.15);color:#2ecc71;border:1px solid rgba(46,204,113,0.3);padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:0.82em;">
-                                <i class="fas fa-power-off"></i> تشغيل
+                                <i class="fas fa-power-off"></i> {{ t.enable_btn }}
                             </button>
                             <button onclick="scanAutoTrade()" id="at-scan-btn" style="background:rgba(212,175,55,0.15);color:#d4af37;border:1px solid rgba(212,175,55,0.3);padding:6px 14px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:0.82em;">
-                                <i class="fas fa-search-dollar"></i> مسح السوق
+                                <i class="fas fa-search-dollar"></i> {{ t.scan_btn }}
                             </button>
                         </div>
                     </div>
@@ -1374,7 +1374,7 @@
                 <div class="panel-card" style="grid-column: span 3;">
                     <div class="panel-header">
                         <i class="fas fa-briefcase"></i>
-                        <h3>محفظتي التجريبية (Live Tracker)</h3>
+                        <h3>{{ t.portfolio_title }}</h3>
                         <span class="tooltip-help">?<span class="tooltip-text"><b>💼 محفظتي التجريبية</b>تتبع صفقاتك بأسعار حقيقية بدون فلوس حقيقية! حلل أي سهم → اضغط "حفظ بالمحفظة" → يتتبع الربح/الخسارة تلقائياً.</span></span>
                         <div style="margin-right: auto;">
                             <span id="portfolio-total-pnl" style="font-weight: bold; font-size: 1.1rem;">$0.00</span>
@@ -1384,18 +1384,18 @@
                         <table class="ai-table" style="margin-top: 0; border-radius: 0;">
                             <thead>
                                 <tr>
-                                    <th>السهم</th>
-                                    <th>سعر الدخول</th>
-                                    <th>السعر الحالي</th>
-                                    <th>الكمية</th>
-                                    <th>الربح/الخسارة ($)</th>
-                                    <th>الربح/الخسارة (%)</th>
-                                    <th>الإجراء</th>
+                                    <th>{{ t.col_ticker }}</th>
+                                    <th>{{ t.col_entry }}</th>
+                                    <th>{{ t.col_current }}</th>
+                                    <th>{{ t.col_qty }}</th>
+                                    <th>{{ t.col_pnl }}</th>
+                                    <th>{{ t.col_pnl_pct }}</th>
+                                    <th>{{ t.col_action }}</th>
                                 </tr>
                             </thead>
                             <tbody id="portfolio-body">
                                 <tr>
-                                    <td colspan="7" style="text-align: center; padding: 30px; color: #888;">لا توجد صفقات مفتوحة حالياً. حلل سهم واحفظه لتبدأ التتبع.</td>
+                                    <td colspan="7" style="text-align: center; padding: 30px; color: #888;">{{ t.no_trades }}</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1411,7 +1411,7 @@
                             <span class="tooltip-help">?<span class="tooltip-text"><b>🤖 المحلل الذكي</b>اكتب اسم أي سهم بالعربي أو الإنجليزي وسيعطيك:<br>📊 تحليل فني (RSI, MACD, EMA)<br>💰 تحليل أساسي (P/E, Revenue)<br>🧠 رأي الذكاء الاصطناعي<br>🎯 نقاط الدخول والخروج</span></span>
                         </div>
                         <button onclick="clearChat()" style="background:none;border:1px solid rgba(255,77,77,0.3);color:#ff4d4d;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:0.78rem;transition:all 0.3s;display:flex;align-items:center;gap:6px;font-family:inherit;" onmouseover="this.style.background='rgba(255,77,77,0.15)'" onmouseout="this.style.background='none'">
-                            <i class="fas fa-trash-alt"></i> مسح
+                            <i class="fas fa-trash-alt"></i> {{ t.chat_clear }}
                         </button>
                     </div>
 
@@ -1545,7 +1545,7 @@
                     <div class="panel-card" id="chart-wrapper" style="display: none; padding: 15px; margin-top: 20px; border-radius: 12px; background: #ffffff; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
                         <div class="panel-header" style="margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #eee;">
                             <i class="fas fa-chart-area" style="color: #333;"></i>
-                            <h3 style="font-size: 1.1rem; color: #111;">الرؤية البصرية للسعر</h3>
+                            <h3 style="font-size: 1.1rem; color: #111;">{{ t.chart_title }}</h3>
                         </div>
                         <div id="plotly-chart" style="width: 100%; height: 850px;"></div>
                     </div>
