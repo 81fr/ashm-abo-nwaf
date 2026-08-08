@@ -1912,13 +1912,67 @@
                 const history = JSON.parse(saved);
                 if (!history || history.length === 0) return;
                 const messagesContainer = document.getElementById('chat-messages');
+                
+                // Create collapsible previous session container
+                const historyWrapper = document.createElement('div');
+                historyWrapper.id = 'previous-session';
+                
+                // Toggle header
+                const toggleHeader = document.createElement('div');
+                toggleHeader.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;margin:8px 0;cursor:pointer;border-radius:10px;background:rgba(212,175,55,0.06);border:1px solid rgba(212,175,55,0.15);transition:all 0.3s ease;';
+                toggleHeader.innerHTML = `
+                    <i class="fas fa-history" style="color:#d4af37;font-size:0.8rem;"></i>
+                    <span style="color:#d4af37;font-size:0.78rem;font-weight:600;">محادثات سابقة (${history.length})</span>
+                    <i class="fas fa-chevron-down" id="history-arrow" style="color:#d4af37;font-size:0.7rem;transition:transform 0.3s;"></i>
+                `;
+                toggleHeader.onmouseover = function() { this.style.background = 'rgba(212,175,55,0.12)'; };
+                toggleHeader.onmouseout = function() { this.style.background = 'rgba(212,175,55,0.06)'; };
+                toggleHeader.onclick = function() {
+                    const content = document.getElementById('history-content');
+                    const arrow = document.getElementById('history-arrow');
+                    if (content.style.display === 'none') {
+                        content.style.display = 'block';
+                        arrow.style.transform = 'rotate(180deg)';
+                    } else {
+                        content.style.display = 'none';
+                        arrow.style.transform = 'rotate(0deg)';
+                    }
+                };
+                historyWrapper.appendChild(toggleHeader);
+                
+                // Hidden content area (collapsed by default)
+                const contentDiv = document.createElement('div');
+                contentDiv.id = 'history-content';
+                contentDiv.style.display = 'none';
+                contentDiv.style.opacity = '0.6';
+                contentDiv.style.borderRight = '2px solid rgba(212,175,55,0.15)';
+                contentDiv.style.paddingRight = '10px';
+                contentDiv.style.marginRight = '5px';
+                
                 history.forEach(item => {
                     const div = document.createElement('div');
                     div.classList.add('message-bubble', `message-${item.class}`);
                     div.innerHTML = item.html;
-                    messagesContainer.appendChild(div);
+                    contentDiv.appendChild(div);
                 });
-                window.scrollTo({ top: document.body.scrollHeight, behavior: 'auto' });
+                historyWrapper.appendChild(contentDiv);
+                
+                // Session divider
+                const divider = document.createElement('div');
+                divider.style.cssText = 'display:flex;align-items:center;gap:12px;margin:15px 0;';
+                divider.innerHTML = `
+                    <div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(212,175,55,0.3),transparent);"></div>
+                    <span style="color:#d4af37;font-size:0.72rem;font-weight:600;white-space:nowrap;display:flex;align-items:center;gap:5px;">
+                        <i class="fas fa-comments" style="font-size:0.7rem;"></i>
+                        جلسة جديدة
+                    </span>
+                    <div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(212,175,55,0.3),transparent);"></div>
+                `;
+
+                // Insert: history wrapper first, then divider
+                messagesContainer.appendChild(historyWrapper);
+                messagesContainer.appendChild(divider);
+                
             } catch(e) {}
         }
 
