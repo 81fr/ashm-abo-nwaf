@@ -104,6 +104,11 @@ translations = {
         'tut_subtitle': 'تعلّم كيف تستخدم كل ميزة في المنصة خطوة بخطوة',
         'tut_done': '✅ فهمت، ابدأ التداول!',
         'tut_reopen': 'يمكنك فتح هذا الدليل في أي وقت بالضغط على زر ❓ الذهبي',
+        'password_change_disabled': 'تغيير كلمة السر غير مسموح حالياً. تواصل مع المسؤول.',
+        'settings_section': 'إعدادات النظام',
+        'allow_password_change_label': 'السماح للمستخدمين بتغيير كلمة السر',
+        'enabled': 'مفعّل',
+        'disabled_status': 'معطّل',
     },
     'en': {
         'site_title': 'EAGLES OF SPX - Dashboard',
@@ -209,6 +214,11 @@ translations = {
         'tut_subtitle': 'Learn how to use every feature step by step',
         'tut_done': '✅ Got it, start trading!',
         'tut_reopen': 'You can reopen this guide anytime by pressing the golden ❓ button',
+        'password_change_disabled': 'Password change is currently disabled. Contact the administrator.',
+        'settings_section': 'System Settings',
+        'allow_password_change_label': 'Allow users to change their password',
+        'enabled': 'Enabled',
+        'disabled_status': 'Disabled',
     }
 }
 

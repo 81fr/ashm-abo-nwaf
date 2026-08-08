@@ -224,6 +224,17 @@ def save_tickets(tickets):
     with open('tickets.json', 'w', encoding='utf-8') as f:
         json.dump(tickets, f, indent=2)
 
+def load_settings():
+    try:
+        with open('settings.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except:
+        return {"allow_password_change": True}
+
+def save_settings(settings):
+    with open('settings.json', 'w', encoding='utf-8') as f:
+        json.dump(settings, f, indent=2)
+
 def load_logs():
     try:
         with open('activity_log.json', 'r', encoding='utf-8') as f:
@@ -405,6 +416,14 @@ def admin_panel():
                 log_activity(session.get('username'), f"إعادة ضبط أجهزة المستخدم: {target_user}")
                 msg = f"تم مسح جميع الأجهزة المرتبطة بالمستخدم {target_user}."
 
+        elif action == 'toggle_password_change':
+            settings = load_settings()
+            settings['allow_password_change'] = not settings.get('allow_password_change', True)
+            save_settings(settings)
+            status = 'مفعّل' if settings['allow_password_change'] else 'معطّل'
+            log_activity(session.get('username'), f"تغيير إعداد تغيير كلمة السر: {status}")
+            msg = f"تم تحديث إعداد تغيير كلمة السر: {status}"
+
     # For display, we need logs in reverse but with their original IDs
     display_logs = []
     full_logs_raw = load_logs()
@@ -414,12 +433,20 @@ def admin_panel():
         display_logs.append(log_copy)
 
     approvals = load_approvals()
-    return render_template('admin.html', users=users, logs=display_logs[::-1], msg=msg, approvals=approvals)
+    settings = load_settings()
+    return render_template('admin.html', users=users, logs=display_logs[::-1], msg=msg, approvals=approvals, settings=settings)
 
 @app.route('/api/change_password', methods=['POST'])
 def change_password():
     if 'username' not in session:
         return {"error": "Unauthorized"}, 401
+    
+    # Check if password change is allowed by admin
+    settings = load_settings()
+    if not settings.get('allow_password_change', True):
+        lang = session.get('lang', 'ar')
+        t = get_translations(lang)
+        return {"error": t.get('password_change_disabled', 'تغيير كلمة السر غير مسموح حالياً.')}, 403
     
     data = request.json
     new_password = data.get('new_password')
@@ -441,7 +468,8 @@ def change_password():
 def dashboard():
     if 'username' not in session:
         return redirect(url_for('login'))
-    return render_template('dashboard.html', username=session['username'])
+    settings = load_settings()
+    return render_template('dashboard.html', username=session['username'], allow_password_change=settings.get('allow_password_change', True))
 
 @app.route('/logout')
 def logout():

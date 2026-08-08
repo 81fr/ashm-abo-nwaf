@@ -956,7 +956,9 @@
                     <div class="user-info-text">
                         <h4>{{ username }}</h4>
                         <p><i class="fas fa-check-circle"></i> {{ t.connected }}</p>
+                        {% if allow_password_change %}
                         <a href="javascript:void(0)" onclick="openChangePassword()" style="color: var(--primary-gold); font-size: 0.75rem; text-decoration: none;">{{ t.change_password }}</a>
+                        {% endif %}
                     </div>
                 </div>
                 <a href="{{ url_for('logout') }}" class="logout-btn">

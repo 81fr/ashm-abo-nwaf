@@ -238,6 +238,47 @@
             {% endif %}
         </div>
 
+        <!-- System Settings Section -->
+        <div style="margin-top: 40px; border-top: 2px solid #222; padding-top: 20px;">
+            <h2 style="color: #d4af37; margin-bottom: 20px;"><i class="fas fa-cogs"></i> إعدادات النظام (System Settings)</h2>
+            <div style="background: rgba(226, 192, 68, 0.05); border-radius: 12px; padding: 20px; border: 1px solid rgba(226, 192, 68, 0.2);">
+                
+                <!-- Toggle: Allow Password Change -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <i class="fas fa-key" style="color: #d4af37; font-size: 1.2rem;"></i>
+                        <div>
+                            <div style="font-weight: 700; font-size: 0.95rem;">السماح للمستخدمين بتغيير كلمة السر</div>
+                            <div style="color: #888; font-size: 0.78rem; margin-top: 3px;">Allow users to change their own password</div>
+                        </div>
+                    </div>
+                    <form method="POST" style="margin: 0;">
+                        <input type="hidden" name="action" value="toggle_password_change">
+                        <button type="submit" style="
+                            background: {{ 'linear-gradient(135deg, rgba(46,204,113,0.2), rgba(46,204,113,0.1))' if settings.get('allow_password_change', true) else 'linear-gradient(135deg, rgba(231,76,60,0.2), rgba(231,76,60,0.1))' }};
+                            border: 1px solid {{ '#2ecc71' if settings.get('allow_password_change', true) else '#e74c3c' }};
+                            color: {{ '#2ecc71' if settings.get('allow_password_change', true) else '#e74c3c' }};
+                            padding: 8px 20px;
+                            border-radius: 20px;
+                            font-weight: 700;
+                            font-size: 0.85rem;
+                            cursor: pointer;
+                            transition: all 0.3s ease;
+                            min-width: 100px;
+                            font-family: inherit;
+                        ">
+                            {% if settings.get('allow_password_change', true) %}
+                                <i class="fas fa-toggle-on" style="margin-left: 5px;"></i> مفعّل
+                            {% else %}
+                                <i class="fas fa-toggle-off" style="margin-left: 5px;"></i> معطّل
+                            {% endif %}
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+
         <!-- System Logs Section -->
         <div style="margin-top: 40px; border-top: 2px solid #222; padding-top: 20px;">
             <h2 style="color: #d4af37; margin-bottom: 20px;"><i class="fas fa-history"></i> سجل تتبع النظام (Activity Log)</h2>
