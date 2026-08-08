@@ -616,11 +616,8 @@ def chat():
         if potential_ticker and potential_ticker not in IGNORED_KEYWORDS:
             ticker = TICKER_MAP.get(potential_ticker, potential_ticker)
     
-    if not ticker and 'last_ticker' in session:
-        ticker = session['last_ticker']
-
-    if ticker:
-        session['last_ticker'] = ticker
+    # Flag if ticker was explicitly mentioned in message
+    explicit_ticker = ticker is not None
         
     is_open, market_msg = get_market_status()
     market_alert = ""
@@ -661,6 +658,15 @@ def chat():
         help_keywords = ["مساعدة", "كيف", "شرح", "وش يعني", "ايش يعني", "ما معنى",
                         "help", "how", "explain", "شلون", "كيف استخدم"]
         is_help = any(kw in user_message for kw in help_keywords)
+        
+        # Only use last_ticker fallback when no special intent is detected
+        has_special_intent = is_sector or is_scanner_request or is_compare or (is_greeting and not explicit_ticker) or (is_help and not explicit_ticker)
+        
+        if not ticker and not has_special_intent and 'last_ticker' in session:
+            ticker = session['last_ticker']
+        
+        if ticker:
+            session['last_ticker'] = ticker
         
         if is_greeting and not ticker:
             pass  # Handled below
